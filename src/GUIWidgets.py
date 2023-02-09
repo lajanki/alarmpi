@@ -154,11 +154,12 @@ class AlarmWindow(QWidget):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def _show_radio_play_indicator(self, station_name):
-        html = "<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {}</span></html>".format(station_name)
+    def _show_play_indicator(self, icon, name):
+        """Display an icon and a text in the lower right indicator slot."""
+        html = "<html><img src='resources/icons/{}' height='28'><span style='font-size:14px'> {}</span></html>".format(icon, name)
         self.radio_play_indicator.setText(html)
 
-    def _hide_radio_play_indicator(self):
+    def _hide_play_indicator(self):
         self.radio_play_indicator.setText("")
 
 

@@ -21,6 +21,7 @@ class AlarmBuilder:
 
     def __init__(self, config):
         self.config = config
+        self.wakeup_song = None
 
     def build(self):
         """Loop through the configuration file for enabled content sections
@@ -49,6 +50,11 @@ class AlarmBuilder:
         for section in contents:
             print(section)
 
+        # Choose a random wakeup song
+        if self.config["media"]["enabled"]:
+            files = glob.glob(self.config["media"]["path"])
+            self.wakeup_song = random.choice(files)
+
         # Initialize TTS client with the generated content
         self.tts_client = self.get_tts_client()
         content_text = "\n".join(contents)
@@ -62,8 +68,6 @@ class AlarmBuilder:
         Args:
             audio (pydub.AudioSegment): the alarm audio to play.
         """
-        if self.config["media"]["enabled"]:
-            self.play_song()
 
         # Play a beep if TTS is not enabled
         tts_enabled = self.config["main"]["TTS"]
@@ -148,19 +152,17 @@ class AlarmBuilder:
         # waiting for it to finish.
         subprocess.Popen(cmd)
 
-    def play_song(self):
-        files = glob.glob(self.config["media"]["path"])
-        path = random.choice(files)
-        #audio = pydub.AudioSegment.from_mp3(path)
-        #pydub.playback.play(audio)
+    def play_wakeup_song(self):
+        event_logger.info("Playing %s", self.wakeup_song)
 
-        audio = pydub.AudioSegment.from_file(path)
-        playback = pydub.playback._play_with_simpleaudio(audio)
+        audio = pydub.AudioSegment.from_mp3(self.wakeup_song)
+        pydub.playback.play(audio)
 
-        # # end playback after 3 seconds
-        # import time
-        # time.sleep(3)
-        # playback.stop()
+        # audio = pydub.AudioSegment.from_mp3(path)
+        # playback = pydub.playback._play_with_simpleaudio(audio)
+
+    def get_song(self):
+        return os.path.basename(self.wakeup_song)
 
     @staticmethod
     def play_beep():

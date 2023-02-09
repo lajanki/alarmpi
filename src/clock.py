@@ -62,7 +62,9 @@ class Clock:
         # ... one more worker thread for building and playing an alarm from end to end
         self.build_and_play_thread = AlarmWorker(self.alarm_player, task="build_and_play")
         self.build_and_play_thread.build_finished_signal.connect(self.finish_building_alarm)
-        self.build_and_play_thread.play_finished_signal.connect(self.finish_playing_alarm)
+
+        self.build_and_play_thread.song_start_signal.connect(self.start_playing_wakeup_song)
+        self.build_and_play_thread.song_finished_signal.connect(self.finish_playing_wakeup_song)
 
         # Set debug signal handlers for custom debug signal and keyboard event
         signal.signal(signal.SIGUSR1, self._debug_signal_handler)
@@ -355,10 +357,10 @@ class Clock:
         # when the button gets checked and stop when state changes to not checked.
         # (The state change occurs before this callback runs.)
         if button.isChecked():
-            self.main_window._show_radio_play_indicator(current_radio_station)
+            self.main_window._show_play_indicator("radio64x64.png", current_radio_station)
             self.radio.play(url)
         else:
-            self.main_window._hide_radio_play_indicator()
+            self.main_window._hide_play_indicator()
             self.radio.stop()
 
     def play_alarm(self):
@@ -409,6 +411,13 @@ class Clock:
         self.alarm_play_button.setEnabled(False)
         self.main_window.waiting_spinner.start()
         self.build_and_play_thread.start()
+
+
+    def start_playing_wakeup_song(self, name):
+        self.main_window._show_play_indicator("musical_note64x64.png", name)
+
+    def finish_playing_wakeup_song(self):
+        self.main_window._hide_play_indicator()
 
     def toggle_display_mode(self):
         """Button callback - toggle window. Change main window display mode between
@@ -543,6 +552,9 @@ class Clock:
 class AlarmWorker(QThread):
     play_finished_signal = pyqtSignal(int)
     build_finished_signal = pyqtSignal(int)
+    song_start_signal = pyqtSignal(str)
+    song_finished_signal = pyqtSignal(int)
+
     audio = None
 
     def __init__(self, builder, *args, task):
@@ -571,6 +583,11 @@ class AlarmWorker(QThread):
         elif self.task == "build_and_play":
             self._build()
             self.build_finished_signal.emit(1)
+
+            self.song_start_signal.emit(self.alarm_builder.get_song())
+            self.alarm_builder.play_wakeup_song()
+            self.song_finished_signal.emit(1)
+
             self._play()
             self.play_finished_signal.emit(1)
 
