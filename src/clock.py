@@ -577,9 +577,15 @@ class AlarmWorker(QThread):
         if self.task == "build":
             self._build()
             self.build_finished_signal.emit(1)
+
         elif self.task == "play":
+            self.song_start_signal.emit(self.alarm_builder.get_song())
+            self.alarm_builder.play_wakeup_song()
+            self.song_finished_signal.emit(1)
+
             self._play()
             self.play_finished_signal.emit(1)
+            
         elif self.task == "build_and_play":
             self._build()
             self.build_finished_signal.emit(1)
