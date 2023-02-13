@@ -2,10 +2,10 @@
 
 import logging
 import os
+import glob
 from datetime import datetime
 
 import yaml
-import requests
 from src import utils, rpi_utils
 
 
@@ -77,6 +77,7 @@ class AlarmConfig:
          * low_brightness value is valid
          * default radio station is valid 
          * nighttime values are in HH:MM
+         * path to wakeup song is valid if enabled
         """
 
         for item in self["content"]:
@@ -99,6 +100,9 @@ class AlarmConfig:
             datetime.strptime(self["main"]["nighttime"]["end"], "%H:%M")
         except ValueError as e:
             raise AssertionError("Invalid time value in nighttime: " + e.args[0])
+
+        if self["media"]["enabled"]:
+            assert glob.glob(self["media"]["path"]), "Path to wakeup song is not valid"
 
         return True
 
