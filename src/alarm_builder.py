@@ -54,6 +54,7 @@ class AlarmBuilder:
         if self.config["media"]["enabled"]:
             files = glob.glob(self.config["media"]["path"])
             self.wakeup_song = random.choice(files)
+            event_logger.info("Set wakeup song to %s", self.wakeup_song)
 
         # Initialize TTS client with the generated content
         self.tts_client = self.get_tts_client()
@@ -161,8 +162,10 @@ class AlarmBuilder:
         # audio = pydub.AudioSegment.from_mp3(path)
         # playback = pydub.playback._play_with_simpleaudio(audio)
 
-    def get_song(self):
-        return os.path.basename(self.wakeup_song)
+    def format_song_name(self):
+        """Create a formatted string Format wakeup song name as <artist> - <song>"""
+        metadata = utils.get_mp3_metadata(self.wakeup_song)
+        return (metadata["artist"] + " - " + metadata["title"]).lstrip("- ")
 
     @staticmethod
     def play_beep():

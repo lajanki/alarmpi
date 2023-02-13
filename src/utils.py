@@ -5,6 +5,7 @@ import os.path
 from datetime import datetime, date, timedelta
 
 from PyQt5.QtGui import QPixmap
+from mutagen.id3 import ID3, ID3NoHeaderError
 
 
 BASE = os.path.join(os.path.dirname(__file__), "..")
@@ -82,3 +83,24 @@ def get_volume_icon(mode):
         }
 
         return img_map[mode].scaledToHeight(32)
+
+def get_mp3_metadata(file):
+    """Read ID3 tag of an mp3 file.
+    Args:
+        file (str): path to audio file
+    Return:
+        A dictionary containing artist and title. Default to 
+        filename if ID3 tags cannot be read.
+    """
+    try:
+        audio = ID3(file)
+        metadata = {
+            "artist": audio["TPE2"].text[0],
+            "title": audio["TIT2"].text[0]
+        }
+    except ID3NoHeaderError as e:
+        metadata = {
+            "artist": "",
+            "title": os.path.basename(file)
+        } 
+    return metadata

@@ -573,16 +573,22 @@ class AlarmWorker(QThread):
         if not self.alarm_builder.config._get_debug_option("DO_NOT_PLAY_ALARM"):
             self.alarm_builder.play(AlarmWorker.audio)      
 
+    def _check_and_play_wakeup_song(self):
+        """Play wakeup song if enabled in config."""
+        if self.alarm_builder.config["media"]["enabled"]:
+            self.song_start_signal.emit(self.alarm_builder.format_song_name())
+            self.alarm_builder.play_wakeup_song()
+            self.song_finished_signal.emit(1)
+        else:
+            event_logger.info("No wakeup song defined, skipping...")
+
     def run(self):
         if self.task == "build":
             self._build()
             self.build_finished_signal.emit(1)
 
         elif self.task == "play":
-            self.song_start_signal.emit(self.alarm_builder.get_song())
-            self.alarm_builder.play_wakeup_song()
-            self.song_finished_signal.emit(1)
-
+            self._check_and_play_wakeup_song()
             self._play()
             self.play_finished_signal.emit(1)
             
@@ -590,10 +596,7 @@ class AlarmWorker(QThread):
             self._build()
             self.build_finished_signal.emit(1)
 
-            self.song_start_signal.emit(self.alarm_builder.get_song())
-            self.alarm_builder.play_wakeup_song()
-            self.song_finished_signal.emit(1)
-
+            self._check_and_play_wakeup_song()
             self._play()
             self.play_finished_signal.emit(1)
 
