@@ -5,6 +5,7 @@ freezegun
 google-cloud-texttospeech
 ipython
 num2words
+pip-tools
 pydub
 PyQt5-sip
 PyQt5==5.15.10
