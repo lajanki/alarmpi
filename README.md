@@ -60,33 +60,47 @@ It's also possible to run the alarm without the GUI on a headless setup, see Usa
 
 ## Setup
 First, install required system packages with  
-```apt install python-all-dev qt5-default ffmpeg festival vlc portaudio19-dev gpiod```  
-These include the Qt 5 development package, Festival text-to-speech engine, the command line media player cvlc and audio libraries enabling playback of mp3 files directly in Python.
+```bash
+sudo apt install qtbase5-dev ffmpeg festival vlc gpiod
+```
+These include the Qt5 development package, Festival text-to-speech engine and vlc media player.
 
 Next, install Python packages with  
-```pip install -r requirements.txt```  
+```bash
+pip install -r requirements.txt
+```
 Using a virtual environment is recommended
 
 The GUI has Raspberry Pi specific buttons for manipulating the display's backlight brightness. In order to enable these two system files need to be made accessable by the session user (by default `pi`):
-```
+```bash
 chown pi /sys/class/backlight/rpi_backlight/brightness
 chown pi /sys/class/backlight/rpi_backlight/bl_power
 ```
 This step can be ignored on other systems.
 
+### Troubleshooting install issues
+Installing PyQt on a Raspberry Pi can be troublesome as it has to be compiled from source. In this case the installation may appear
+
+to hang and, after a while be killed, due to a hidden prompt asking to accept its GPL license. In this case install it separately with
+```bash
+pip install PyQt5==5.15.10 --config-settings --confirm-license= --verbose
+```
+and then continue with the rest of the requirements as above.
+
+Note that on an older Raspberry Pi model compiling from source can take a couple of hours.
 
 
 ## Usage
 Run the script either with
-```
+```bash
 python main.py [configuration_file]
 ```
 or
-```
+```bash
 python play_alarm.py [configuration_file]
 ```
 where `[configuration_file]` is an optional alarm configuration file either in `./configs/` or `$HOME/.alarmpi/`, ie.
-```
+```bash
 python main.py default.yaml
 ```
 If no argument is used, `./configs/default.yaml` will be used.
@@ -106,7 +120,7 @@ The optional argument in both forms is a path to a configuration file for custom
 
 ### Note about locales
 While the TTS alarm is played in English, weekday and month names will be generated according to the runtime environment's current locale. If necessary, the relevant locale setting can be set to English with something like:
-```
+```bash
 LC_TIME=en_GB.utf8 python main.py wakeup.yaml
 ```
 
@@ -126,6 +140,6 @@ optional arguments:
 
 ## Unit tests
 Unit tests can be run from the root folder with
-```
+```bash
 python -m pytest
 ```
