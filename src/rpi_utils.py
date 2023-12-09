@@ -1,9 +1,7 @@
 # Collectin of Raspberry Pi related helper functions for interacting with screen
 # brightness.
 
-import tempfile
 import logging
-import inspect
 import os
 
 
@@ -14,7 +12,7 @@ HIGH_BRIGHTNESS = 255
 BRIGHTNESS_FILE = "/sys/class/backlight/10-0045/brightness"
 POWER_FILE = "/sys/class/backlight/10-0045/bl_power"
 
-# Older backlight control files for pre Debian Bullseye based Raspberry OS release
+# Older backlight control files for pre-Debian Bullseye based Raspberry OS release
 if not os.path.exists(BRIGHTNESS_FILE):
     BRIGHTNESS_FILE = "/sys/class/backlight/rpi_backlight/brightness"
     POWER_FILE = "/sys/class/backlight/rpi_backlight/bl_power"

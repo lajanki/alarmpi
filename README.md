@@ -51,7 +51,7 @@ This project is built around the following hardware.
  * A speaker
  * A DHT22 temperature and humidity sensor (optional)
 
-While this is built for a Rapsberry Pi, other Linux systems can be used for the main functionality. The GUI does have two bindings to a Raspberry Pi: the buttons for toggling screen brightness and putting it to sleep are disabled on a different system.
+While this is built for a Rapsberry Pi, other Linux systems can be used for the main functionality. The GUI does have two bindings to a Raspberry Pi; buttons toggling screen brightness and turning it off completely are disabled on a non Pi system.
 
 The DHT22 sensor is used for indoor temperature measurement and can be disabled from the configuration, see [configs/README.md](./configs/README.md).
 
@@ -71,12 +71,11 @@ pip install -r requirements.txt
 ```
 Using a virtual environment is recommended
 
-The GUI has Raspberry Pi specific buttons for manipulating the display's backlight brightness. In order to enable these two system files need to be made accessable by the session user (by default `pi`):
+Interacting with the Raspberry Pi's screen brightness is done via two system owned by the root user. The following udev rule will make them writable by all users (adapted from https://github.com/linusg/rpi-backlight).
+
 ```bash
-chown pi /sys/class/backlight/rpi_backlight/brightness
-chown pi /sys/class/backlight/rpi_backlight/bl_power
+echo 'SUBSYSTEM=="backlight",RUN+="/bin/chmod 666 /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power"' | sudo tee -a /etc/udev/rules.d/backlight-permissions.rules
 ```
-This step can be ignored on other systems.
 
 ### Troubleshooting install issues
 Installing PyQt on a Raspberry Pi can be troublesome as it has to be compiled from source. In this case the installation may appear
@@ -107,7 +106,7 @@ If no argument is used, `./configs/default.yaml` will be used.
 
 
 
-The first runs a GUI version of the script. It includes a digital clock interface for current time as well a settings window for setting the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it to sleep entirely. These buttons will be disabled if the system files `/sys/class/backlight/rpi_backlight/brightness` and `/sys/class/backlight/rpi_backlight/bl_power` ether do not exist or are not writable.
+The first runs a GUI version of the script. It includes a digital clock interface for current time as well a settings window for setting the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
 
 The second form generates an alarm based on the configuration file and plays it. This can be used as a purely CLI interface for the alarm. Use cron to manually schedule an alarm.
 
@@ -141,5 +140,5 @@ optional arguments:
 ## Unit tests
 Unit tests can be run from the root folder with
 ```bash
-python -m pytest
+pytest
 ```
