@@ -33,7 +33,7 @@ def require_rpi(func):
     """Wrapper for skipping function calls if not running on a Raspberry Pi."""
     def wrapper(*args, **kwargs):
         if IS_RASPBERRY_PI:
-            func()
+            func(*args, **kwargs)
         else:
             logger.warning(
                 "Not running on a Raspberry Pi, ignoring utility function %s",
