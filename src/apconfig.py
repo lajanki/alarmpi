@@ -39,8 +39,8 @@ class AlarmConfig:
             raise RuntimeError(msg) from e
 
         # Check for write access to Raspberry Pi system backlight brightness files
-        self.rpi_brightness_write_access = all([os.access(p, os.W_OK) for p in [
-            rpi_utils.BRIGHTNESS_FILE, rpi_utils.POWER_FILE]]
+        self.rpi_brightness_write_access = rpi_utils.IS_RASPBERRY_PI and all(
+            [os.access(p, os.W_OK) for p in [ rpi_utils.BRIGHTNESS_FILE, rpi_utils.POWER_FILE ]]
         )
 
     def __getitem__(self, item):

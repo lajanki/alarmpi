@@ -6,7 +6,7 @@ from datetime import datetime
 
 from freezegun import freeze_time
 
-from src import clock
+from src import clock, rpi_utils
 
 
 @patch("src.apconfig.AlarmConfig.get_config_file_path")
@@ -26,6 +26,7 @@ def dummy_clock():
     """
     return create_clock()
 
+rpi_utils.IS_RASPBERRY_PI = True
 
 
 class TestClockCase():
@@ -119,7 +120,7 @@ class TestClockCase():
     @patch("src.rpi_utils.set_display_backlight_brightness")
     @patch("src.rpi_utils._get_current_display_backlight_brightness")
     def test_brightness_toggle(self, mock_get_brightness, mock_set_brightness, dummy_clock):
-        """Does the backlight toggle change brightness change from low to high?"""
+        """Does the backlight toggle change brightness from low to high?"""
         mock_get_brightness.return_value = 12
 
         # Ensure the button is enabled before clicking it
