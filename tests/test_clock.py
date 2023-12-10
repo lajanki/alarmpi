@@ -131,7 +131,7 @@ class TestClockCase():
         # Click again and check value is set back to low
         mock_get_brightness.return_value = 255
         dummy_clock.settings_window.control_buttons["Toggle\nBrightness"].click()
-        mock_set_brightness.assert_called_with(12)  # Default low brightness value is 12
+        mock_set_brightness.assert_called_with(12)
 
     @patch("src.apconfig.AlarmConfig.get_config_file_path")
     def test_brightness_buttons_disabled_on_non_writable_configs(self, mock_get_config_file_path):

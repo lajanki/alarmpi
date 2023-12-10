@@ -3,6 +3,7 @@
 
 import logging
 import os
+from functools import wraps
 
 
 logger = logging.getLogger("eventLogger")
@@ -29,6 +30,7 @@ except Exception:
 
 def require_rpi(func):
     """Wrapper for skipping function calls if not running on a Raspberry Pi."""
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if IS_RASPBERRY_PI:
             func(*args, **kwargs)
@@ -45,11 +47,9 @@ def set_display_backlight_brightness(brightness):
     with open(BRIGHTNESS_FILE, "w") as f:
         f.write(str(brightness))
 
-@require_rpi
 def toggle_display_backlight_brightness(low_brightness=12):
-    """Reads Raspberry pi touch display's current brightness values from system
-    file and toggles it between low and max (255) values depending on the
-    current value.
+    """Reads current brightness value and toggles it between
+    low and max values depending on current value.
     """
     old = _get_current_display_backlight_brightness()
 
