@@ -19,13 +19,12 @@ if not os.path.exists(BRIGHTNESS_FILE):
     POWER_FILE = "/sys/class/backlight/rpi_backlight/bl_power"
 
 
-IS_RASPBERRY_PI = False
 try:
     with open("/sys/firmware/devicetree/base/model") as f:
-        if "raspberry pi" in f.read().lower():
-            IS_RASPBERRY_PI = True
+        IS_RASPBERRY_PI = "raspberry pi" in f.read().lower()
 except Exception:
-    pass
+    IS_RASPBERRY_PI = False
+
 
 
 def require_rpi(func):
@@ -41,17 +40,28 @@ def require_rpi(func):
             )
     return wrapper
 
+
 @require_rpi
+def _get_value(file):
+    with open(file) as f:
+        value = int(f.read().strip())
+    return value
+
+@require_rpi
+def _set_value(file, value):
+    with open(file, "w") as f:
+        f.write(str(value))
+
+
 def set_display_backlight_brightness(brightness):
     """Write a new brightness value to file."""
-    with open(BRIGHTNESS_FILE, "w") as f:
-        f.write(str(brightness))
+    _set_value(BRIGHTNESS_FILE, brightness)
 
 def toggle_display_backlight_brightness(low_brightness=12):
     """Reads current brightness value and toggles it between
     low and max values depending on current value.
     """
-    old = _get_current_display_backlight_brightness()
+    old = _get_value(BRIGHTNESS_FILE)
 
     # set to furthest away from current brightness
     if abs(old-low_brightness) < abs(old-HIGH_BRIGHTNESS):
@@ -61,42 +71,24 @@ def toggle_display_backlight_brightness(low_brightness=12):
 
     set_display_backlight_brightness(new)
 
-@require_rpi
 def toggle_screen_state(state="on"):
     """Toggle screen state between on / off."""
     value = 1
     if state == "on":
         value = 0
 
-    with open(POWER_FILE, "w") as f:
-        f.write(str(value))
+    _set_value(POWER_FILE, value)
 
-@require_rpi
 def get_and_set_screen_state(new_state):
     """Read the current screen power state and set it to new_state. Returns the
     previous value (on/off).
     """
-    with open(POWER_FILE, "r+") as f:
-        previous_value = f.read().strip()
+    previous_value = _get_value(POWER_FILE)
+    value = 1
+    if new_state == "on":
+        value = 0
 
-        f.seek(0)
-        value = 1
-        if new_state == "on":
-            value = 0
-        f.write(str(value))
-
+    _set_value(POWER_FILE, value)
     if previous_value == 0:
         return "on"
     return "off"
-
-@require_rpi
-def _get_current_display_backlight_brightness():
-    """Return the current backlight brightness value."""
-    with open(BRIGHTNESS_FILE, "r") as f:
-        try:
-            value = int(f.read().strip())
-        # default to max value if unable to read the file
-        except ValueError:
-            value = HIGH_BRIGHTNESS
-
-    return value
