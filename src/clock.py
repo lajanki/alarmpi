@@ -32,7 +32,7 @@ class Clock:
     def __init__(self, config_file, **kwargs):
         """Setup GUI windows and various configuration objects.
         params
-            config_file (str): name (not path!) of the configuration file in /configs to use.
+            config_file (str): path of the configuration file to use.
             kwargs: additional command line parameters passed via main.py
         """
         # Read the alarm configuration file and initialize and alarmenv object
@@ -519,7 +519,7 @@ class Clock:
         app = QApplication.instance()
 
         with open(OUTPUT_FILE, "w") as f:
-            f.write("config file: {}\n".format(self.config.path_to_config))
+            f.write("config file: {}\n".format(self.config.config_file))
             json.dump(self.config.config, f, indent=4, cls=utils.DateTimeEncoder)
 
             f.write("\n{:15} {:9} {:12} {:14} {:11}".format("window", "isVisible", "isFullScreen", "isActiveWindow", "isEnabled"))
