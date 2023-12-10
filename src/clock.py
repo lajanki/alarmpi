@@ -35,11 +35,11 @@ class Clock:
             config_file (str): name (not path!) of the configuration file in /configs to use.
             kwargs: additional command line parameters passed via main.py
         """
-        self.main_window = GUIWidgets.AlarmWindow()
-        self.settings_window = GUIWidgets.SettingsWindow()
-
         # Read the alarm configuration file and initialize and alarmenv object
         self.config = apconfig.AlarmConfig(config_file)
+
+        self.main_window = GUIWidgets.AlarmWindow(self.config)
+        self.settings_window = GUIWidgets.SettingsWindow(self.config)
 
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
         self.radio = RadioStreamer(self.config["radio"])

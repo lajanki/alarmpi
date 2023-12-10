@@ -1,4 +1,5 @@
 main:
+  alarm_time: '07:00'
   low_brightness: 12
   full_brightness_on_alarm: true
   nighttime:
