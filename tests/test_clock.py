@@ -26,7 +26,6 @@ def dummy_clock():
     """
     return create_clock()
 
-rpi_utils.IS_RASPBERRY_PI = True
 
 
 class TestClockCase():
