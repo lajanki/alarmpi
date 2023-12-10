@@ -32,7 +32,7 @@ def require_rpi(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if IS_RASPBERRY_PI:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         else:
             logger.warning(
                 "Not running on a Raspberry Pi, ignoring utility function %s",
