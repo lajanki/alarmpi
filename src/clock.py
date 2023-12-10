@@ -38,7 +38,7 @@ class Clock:
         # Read the alarm configuration file and initialize and alarmenv object
         self.config = apconfig.AlarmConfig(config_file)
 
-        self.main_window = GUIWidgets.AlarmWindow(self.config)
+        self.main_window = GUIWidgets.AlarmWindow()
         self.settings_window = GUIWidgets.SettingsWindow(self.config)
 
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
