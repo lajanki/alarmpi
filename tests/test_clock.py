@@ -6,14 +6,18 @@ from datetime import datetime
 
 from freezegun import freeze_time
 
-from src import clock
+from src import clock, apconfig, alarm_builder
 
 
+
+PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
+
+
+#### Clock
 
 
 def create_clock():
     """Create a dummy Clock instance using test_alarm.yaml"""
-    PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
     dummy_clock = clock.Clock(PATH_TO_CONFIG)
     dummy_clock.setup()
     return dummy_clock
@@ -176,7 +180,28 @@ class TestClockCase():
 
             dummy_clock.config["main"]["nighttime"]["start_dt"] == datetime(2021, 7, 31, 22, 0)
             dummy_clock.config["main"]["nighttime"]["end_dt"] == datetime(2021, 8, 1, 7, 0)
-        
+
+
+#### AlarmWorker
+
+class TestAlarmWorker():
+
+    @patch("src.clock.AlarmWorker._build")
+    @patch("src.clock.AlarmWorker._play")
+    def test_build_and_play_alarm_time_override(self, mock_play, mock_build, capsys):
+        """Does build_and_play task type temporarily override alarm_time in config?"""
+        config = apconfig.AlarmConfig(PATH_TO_CONFIG)
+        builder = alarm_builder.AlarmBuilder(config)
+
+        worker = clock.AlarmWorker(builder, task="build_and_play")
+        worker.run()
+
+        # TODO: assert the generated alarm contains current time
+        captured = capsys.readouterr()
+        assert builder.config["main"]["alarm_time"] == "07:02"
+
+
+#### RadioStreamer
 
 @pytest.fixture
 def dummy_radio():
