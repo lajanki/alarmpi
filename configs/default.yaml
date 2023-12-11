@@ -10,7 +10,7 @@ main:
   end: Thats all for now. Have a nice day.
 
 alsa:
-  card: 1     # ALSA sound card to use for audio level, see aplay -l for available cards
+  card: 1     # ALSA sound card to use for audio volume level, see aplay -l for available cards
 
 content:
   greeting:
