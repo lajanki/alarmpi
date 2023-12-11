@@ -9,12 +9,12 @@ from freezegun import freeze_time
 from src import clock
 
 
-@patch("src.apconfig.AlarmConfig.get_config_file_path")
-def create_clock(mock_get_config_file_path):
+
+
+def create_clock():
     """Create a dummy Clock instance using test_alarm.yaml"""
-    # Mock configuration file read and point to the test configuration file
-    mock_get_config_file_path.return_value = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
-    dummy_clock = clock.Clock("")
+    PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
     dummy_clock.setup()
     return dummy_clock
 
@@ -25,7 +25,6 @@ def dummy_clock():
     where a different configuration is required.
     """
     return create_clock()
-
 
 
 class TestClockCase():
@@ -132,8 +131,7 @@ class TestClockCase():
         dummy_clock.settings_window.control_buttons["Toggle\nBrightness"].click()
         mock_set_brightness.assert_called_with(12)  # Default low brightness value is 12
 
-    @patch("src.apconfig.AlarmConfig.get_config_file_path")
-    def test_brightness_buttons_disabled_on_non_writable_configs(self, mock_get_config_file_path):
+    def test_brightness_buttons_disabled_on_non_writable_configs(self):
         """Are the brightness buttons disabled when the undelying system configurations files
         are not writable?
         """
