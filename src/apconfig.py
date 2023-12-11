@@ -58,6 +58,7 @@ class AlarmConfig:
         * low_brightness value is valid
         * default radio station is valid
         * nighttime values are in HH:MM
+        * alarm_time is in HH:MM
         """
 
         for item in self["content"]:
@@ -91,7 +92,13 @@ class AlarmConfig:
             datetime.strptime(self["main"]["nighttime"]["start"], "%H:%M")
             datetime.strptime(self["main"]["nighttime"]["end"], "%H:%M")
         except ValueError as e:
-            raise AssertionError("Invalid time value in nighttime: " + e.args[0])
+            raise AssertionError("Invalid time value for nighttime: " + e.args[0])
+
+        try:
+            datetime.strptime(self["main"]["alarm_time"], "%H:%M")
+        except ValueError as e:
+            logger.warning("alarm_time %s is not valid, Defaulting to 07:00", self["main"]["alarm_time"])
+            self["main"]["alarm_time"] = "07:00"
 
         return True
 

@@ -93,7 +93,7 @@ class AlarmBuilder:
             the greeting as string.
         """
         section = self.config["content"]["greeting"]
-        alarm_time_override = self.config["main"].get("alarm_time")
+        alarm_time_override = self.config["main"]["alarm_time"]
         greeter = get_greeting.Greeting(section, alarm_time_override)
         greeter.build()
         return greeter.get()

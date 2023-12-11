@@ -245,9 +245,7 @@ class SettingsWindow(QWidget):
 
         # Labels for displaying current active alarm time and time
         # set using the numpad controls.
-        self.input_alarm_time_label = QLabel(Status.EMPTY.value, self)
-        if self.config["main"].get("alarm_time"):
-            self.input_alarm_time_label.setText(self.config["main"]["alarm_time"])
+        self.input_alarm_time_label = QLabel(self.config["main"]["alarm_time"], self)
 
         self.input_alarm_time_label.setAlignment(Qt.AlignCenter)
         right_grid.addWidget(self.input_alarm_time_label, 4, 1)
