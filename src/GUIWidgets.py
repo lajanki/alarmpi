@@ -191,7 +191,12 @@ class AlarmWindow(QWidget):
 
 
 class SettingsWindow(QWidget):
+    """Settings window."""
+
     def __init__(self, config):
+        """Args:
+            config (apconfig.AlarmConfig): config object for the alarm.
+        """
         self.config = config
         super().__init__()
         self.control_buttons = {}
