@@ -569,7 +569,12 @@ class AlarmWorker(QThread):
             self._play()
             self.play_finished_signal.emit(1)
         elif self.task == "build_and_play":
+            # Temporarily overwrite alarm_time in config to pass correct value to the greeting
+            old = self.alarm_builder.config["main"]["alarm_time"]
+            self.alarm_builder.config["main"]["alarm_time"] = datetime.now().strftime("%I:%M %p")
             self._build()
+            self.alarm_builder.config["main"]["alarm_time"] = old
+
             self.build_finished_signal.emit(1)
             self._play()
             self.play_finished_signal.emit(1)
