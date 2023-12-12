@@ -187,13 +187,8 @@ class Clock:
         # Disable backlight manipulation buttons if the underlying system
         # files dont't exists (ie. not a Raspberry Pi) or no write access to them.
         if not self.config.rpi_brightness_write_access:
-            msg = [
-                "No write access to system backlight brightness files:",
-                "\t" + rpi_utils.BRIGHTNESS_FILE,
-                "\t" + rpi_utils.POWER_FILE,
-                "Disabling brightness buttons"
-            ]
-            event_logger.info("\n".join(msg))
+            event_logger.info("System doesn't appear to be a Raspberry Pi, disabling brightness buttons.")
+
             self.blank_button.setEnabled(False)
             brightness_button.setEnabled(False)
 
