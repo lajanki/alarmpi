@@ -8,7 +8,7 @@ from functools import partial
 from collections import namedtuple
 from enum import Enum
 
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtWidgets import (
     QWidget,
@@ -67,7 +67,7 @@ class AlarmWindow(QWidget):
             line_length=10,
             line_width=5,
             speed=1.0,
-            color=(255, 20, 20)
+            color=QColor(255, 20, 20)
         )
         loader_indicator_grid.addWidget(loader_indicator, alignment=Qt.AlignBottom | Qt.AlignLeft)
         loader_indicator.setMinimumWidth(50)  # Force a minimum width to keep left alignment from covering part of the spinner
