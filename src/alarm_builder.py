@@ -1,14 +1,15 @@
-import subprocess
+import glob
 import importlib
-import os
 import inspect
 import logging
+import os
 import random
-import glob
 import requests.exceptions
+import subprocess
 
 import pydub
 import pydub.playback
+from PyQt5.QtCore import QThread, pyqtSignal
 
 from src import utils
 from src.handlers import get_festival_tts, get_greeting
@@ -20,6 +21,7 @@ event_logger = logging.getLogger("eventLogger")
 class AlarmBuilder:
 
     def __init__(self, config):
+        self.media_play_thread = MediaPlayWorker()
         self.config = config
 
     def build(self):
@@ -49,6 +51,13 @@ class AlarmBuilder:
         for section in contents:
             print(section)
 
+        if self.config["media"]["enabled"]:
+            files = glob.glob(self.config["media"]["path"])
+            wakeup_song_path = random.choice(files)
+            self.media_play_thread.song_path = wakeup_song_path
+
+            event_logger.info("Set wakeup song to %s", wakeup_song_path)
+
         # Initialize TTS client with the generated content
         self.tts_client = self.get_tts_client()
         content_text = "\n".join(contents)
@@ -62,6 +71,12 @@ class AlarmBuilder:
         Args:
             audio (pydub.AudioSegment): the alarm audio to play.
         """
+        # Play wakeup song if enabled
+        if self.config["media"]["enabled"]:
+            self.media_play_thread.start()
+            self.media_play_thread.wait()
+            self.media_play_thread.stop()
+
         # Play a beep if TTS is not enabled
         tts_enabled = self.config["main"]["TTS"]
         if not tts_enabled:
@@ -153,3 +168,35 @@ class AlarmBuilder:
         pydub.playback.play(beep)
 
         return path
+
+
+class MediaPlayWorker(QThread):
+    """Worker for playing a media file in a separate thread."""
+    play_started_signal = pyqtSignal(str)
+    play_finished_signal = pyqtSignal(int)
+
+    def __init__(self):
+        super().__init__()
+        self.song_path = None
+        self.process = None
+
+    def run(self):
+        """Start a vlc process and notify the GUI to display a window during the playback."""
+        # Format a song name to display
+        metadata = utils.get_mp3_metadata(self.song_path)
+        song_name = (metadata["artist"] + " - " + metadata["title"]).lstrip("- ")
+
+        self.play_started_signal.emit(song_name)
+        self.process = subprocess.run(["/usr/bin/cvlc", self.song_path, "vlc://quit"])
+
+    def stop(self):
+        """Terminate the thread."""
+        print("Stopping media thread")
+        self.play_finished_signal.emit(1)
+        # The vlc process needs to be explicitely terminated
+        try:
+            subprocess.run(["killall", "-9", "vlc"])
+            self.process.terminate()
+
+        except AttributeError:
+            return

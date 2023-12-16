@@ -359,6 +359,37 @@ class SettingsWindow(QWidget):
         self.input_alarm_time_label.setText(time)
 
 
+class MediaPlayerWindow(QWidget):
+    """Small temporary window for wakeup song currently playing."""
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        base_layout = QGridLayout(self)
+        self.setLayout(base_layout)
+
+        self.song_label = QLabel(self)
+        self.button = QPushButton(self)
+        self.button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+
+        self.button.setIcon(QIcon(os.path.join(utils.BASE, "resources", "icons", "musical_note64x64.png")))
+        self.button.setIconSize(QSize(28, 28))
+        base_layout.addWidget(self.button)
+
+        self.resize(400, 180)
+        self.center()
+
+        self.setWindowTitle("Click to continue...")
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+
 class Status(Enum):
     """Status messages to show in status label and input time label."""
     ERROR = "<font color='#FF1414'>ERROR: Invalid time</font>"

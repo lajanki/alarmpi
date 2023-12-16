@@ -37,11 +37,17 @@ class Clock:
         """
         self.main_window = GUIWidgets.AlarmWindow()
         self.settings_window = GUIWidgets.SettingsWindow()
+        self.media_window = GUIWidgets.MediaPlayerWindow()
 
         # Read the alarm configuration file and initialize and alarmenv object
         self.config = apconfig.AlarmConfig(config_file)
-
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
+
+        # Connect slots for media player window 
+        self.media_window.button.clicked.connect(lambda event: self.alarm_player.media_play_thread.stop())
+        self.alarm_player.media_play_thread.play_started_signal.connect(self.display_media_window)
+        self.alarm_player.media_play_thread.play_finished_signal.connect(self.media_window.hide)
+
         self.radio = RadioStreamer(self.config["radio"])
 
         # Setup a QThread and QTimers for building and playing the alarm
@@ -405,6 +411,14 @@ class Clock:
         self.main_window.waiting_spinner.start()
         self.build_and_play_thread.start()
 
+    def display_media_window(self, data):
+        """Slot for displaying a window for a wakeup song.
+        Args:
+            data (str): song name to display; emitted from the AlarmBuilder.
+        """
+        self.media_window.button.setText(data)
+        self.media_window.show()
+
     def toggle_display_mode(self):
         """Button callback - toggle window. Change main window display mode between
         fullscreen and windowed depending on current its state.
@@ -465,10 +479,11 @@ class Clock:
         self.settings_window.volume_label.setPixmap(icon)
 
     def cleanup_and_exit(self):
-        """Button callback - Exit application. Close any existing radio streams and the
+        """Button callback - Exit application. Close any existing media streams and the
         application itself.
         """
         self.radio.stop()
+        self.alarm_player.media_play_thread.stop()
 
         # Ensure display is on and at full brightness
         rpi_utils.toggle_screen_state("on")
@@ -576,7 +591,7 @@ class RadioStreamer:
         self.config = config
 
     def is_playing(self):
-        """Check if cvlc is currently running."""
+        """Check if a radio stream is currently running."""
         return self.process is not None
 
     def play(self, url):

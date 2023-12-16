@@ -1,5 +1,6 @@
 # Wrapper class for reading alarm configuration file.
 
+import glob
 import logging
 import os
 from datetime import datetime
@@ -99,6 +100,9 @@ class AlarmConfig:
             datetime.strptime(self["main"]["nighttime"]["end"], "%H:%M")
         except ValueError as e:
             raise AssertionError("Invalid time value in nighttime: " + e.args[0])
+
+        if self["media"]["enabled"]:
+            assert glob.glob(self["media"]["path"]), "Path to wakeup song is not valid"
 
         return True
 
