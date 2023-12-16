@@ -553,7 +553,6 @@ class Clock:
 class AlarmWorker(QThread):
     play_finished_signal = pyqtSignal(int)
     build_finished_signal = pyqtSignal(int)
-    audio = None
 
     def __init__(self, builder, *args, task):
         super().__init__()
@@ -563,13 +562,14 @@ class AlarmWorker(QThread):
     def _build(self):
         """Build and alarm."""
         event_logger.info("Building alarm")
-        AlarmWorker.audio = self.alarm_builder.build()
+        self.alarm_builder.build()
 
     def _play(self):
         """Play an existing alarm."""
-        # Play unless explicitely ignored in config
-        if not self.alarm_builder.config._get_debug_option("DO_NOT_PLAY_ALARM"):
-            self.alarm_builder.play(AlarmWorker.audio)      
+        if self.alarm_builder.config._get_debug_option("DO_NOT_PLAY_ALARM"):
+            return
+
+        self.alarm_builder.play()
 
     def run(self):
         if self.task == "build":

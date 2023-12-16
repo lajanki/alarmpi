@@ -23,12 +23,11 @@ class AlarmBuilder:
     def __init__(self, config):
         self.media_play_thread = MediaPlayWorker()
         self.config = config
+        self.audio = None
 
     def build(self):
         """Loop through the configuration file for enabled content sections
         and generate content.
-        Return:
-            list of generated content
         """
         # Initialize content with greeting
         contents = []
@@ -59,44 +58,46 @@ class AlarmBuilder:
             event_logger.info("Set wakeup song to %s", wakeup_song_path)
 
         # Initialize TTS client with the generated content
-        self.tts_client = self.get_tts_client()
-        content_text = "\n".join(contents)
-        audio = self.tts_client.setup(content_text)
+        if self.config["main"]["TTS"]:
+            self.tts_client = self.get_tts_client()
+            content_text = "\n".join(contents)
+            self.audio = self.tts_client.setup(content_text)
 
-        return audio
-
-    def play(self, audio):
+    def play(self):
         """Play an alarm. Either play a pre-built alarm via the configured TTS client
         or play a beeping sound effect.
-        Args:
-            audio (pydub.AudioSegment): the alarm audio to play.
         """
         # Play wakeup song if enabled
-        if self.config["media"]["enabled"]:
+        wakeup_song_enabled = self.config["media"]["enabled"]
+        tts_enabled = self.config["main"]["TTS"]
+
+        # Default to a beepig alarm if nether TTS or wakeup song is enabled
+        if not any([tts_enabled, wakeup_song_enabled]):
+            AlarmBuilder.play_beep()
+            return
+
+        if wakeup_song_enabled: 
             self.media_play_thread.start()
             self.media_play_thread.wait()
             self.media_play_thread.stop()
 
-        # Play a beep if TTS is not enabled
-        tts_enabled = self.config["main"]["TTS"]
-        if not tts_enabled:
-            AlarmBuilder.play_beep()
-            return
+        if self.audio:
+            try:
+                self.tts_client.play(self.audio)
+            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
+                event_logger.error(str(e))
+                event_logger.info("Defaulting to alarm sound effect")
+                AlarmBuilder.play_beep()
 
-        try:
-            self.tts_client.play(audio)
-        except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
-            event_logger.error(str(e))
-            event_logger.info("Defaulting to alarm sound effect")
-            AlarmBuilder.play_beep()
+        # Reset audio for next alarm
+        self.audio = None
 
     def build_and_play(self):
         """Build and play an alarm.
         This is provided as a CLI interface for playing the alarm.
         Since the alarm is built on the go, there may be a few seconds delay on play.
         """
-        audio = self.build()
-        self.play(audio)
+        self.play()
 
         # Play the radio stream if enabled
         if self.config["radio"]["enabled"]:
@@ -107,8 +108,6 @@ class AlarmBuilder:
         Return:
             the greeting as string.
         """
-        section = self.config["content"]["greeting"]
-        alarm_time_override = self.config["main"]["alarm_time"]
         greeter = get_greeting.Greeting(self.config)
         greeter.build()
         return greeter.get()
@@ -117,13 +116,12 @@ class AlarmBuilder:
         """Determine which TTS engine to use based on the enabled tts sections
         in the config file. First enabled section is used.
         """
-        # Valid config can only have 1 enabled TTS engine. Note that
-        # response is a wrapper containing dicionary with the top level TTS key.
+        # Search for the first enabled TTS engine and instantiate a corresponding class
         section_wrapper = self.config.get_enabled_sections("TTS")
-        
-        # Instantiate the correct class
+
         if section_wrapper:
             section = list(section_wrapper.values())[0]
+            event_logger.info("Using TTS handler %s", section["handler"])
 
             class_ = self.get_content_parser_class(section)
             # read the path to the keyfile if provided/applicable
