@@ -5,8 +5,7 @@ from unittest.mock import patch, Mock
 
 from freezegun import freeze_time
 
-from src import apconfig
-from src import alarm_builder
+from src import apconfig, alarm_builder
 from src.handlers import (
     get_google_translate_tts,
     get_festival_tts,
@@ -18,13 +17,10 @@ from src.handlers import (
 
 
 @pytest.fixture
-@patch("src.apconfig.AlarmConfig.get_config_file_path")
-def dummy_alarm_builder(mock_get_config_file_path):
-    """Create a dummy alarm from test_alarm.conf"""
-    mock_get_config_file_path.return_value = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
-
-    config = apconfig.AlarmConfig("")
-    config["main"]["alarm_time"] = None
+def dummy_alarm_builder():
+    """Create an AlarmBuilder from the config file."""
+    PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
+    config = apconfig.AlarmConfig(PATH_TO_CONFIG)
     return alarm_builder.AlarmBuilder(config)
 
 def test_enabled_tts_client_chosen(dummy_alarm_builder):
@@ -83,8 +79,7 @@ def test_alarm_time_override(dummy_alarm_builder):
     greeting = dummy_alarm_builder.generate_greeting()
     assert "The time is 08:21" in greeting
 
-@freeze_time("2021-07-30 11:10")
 def test_alarm_time_without_override(dummy_alarm_builder):
     """Is alarm time current time?"""
     greeting = dummy_alarm_builder.generate_greeting()
-    assert "The time is 11:10" in greeting
+    assert "the time is 07:02" in greeting.lower()

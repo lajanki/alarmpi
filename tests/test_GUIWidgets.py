@@ -1,19 +1,22 @@
+import os.path
 import pytest
 
-from src import GUIWidgets
+from src import apconfig, GUIWidgets
 
 
 @pytest.fixture
 def settings_window():
-    return GUIWidgets.SettingsWindow()
+    PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
+    config = apconfig.AlarmConfig(PATH_TO_CONFIG)
+    return GUIWidgets.SettingsWindow(config)
 
 
 def test_hour_update_alarm_display_time(settings_window):
     """Does update_input_alarm_display write the correct time value to the
     settings window's set alarm time label?
     """
-    # @pytest.mark.parametrize seems to execute the options
-    # in the wrong order.
+    # pytest.mark.parametrize doesn't seem to preserve order, use manual
+    # asserts instead
 
     # Manually empty the label and add the first digit
     settings_window.input_alarm_time_label.setText(GUIWidgets.Status.EMPTY.value)

@@ -32,14 +32,14 @@ class Clock:
     def __init__(self, config_file, **kwargs):
         """Setup GUI windows and various configuration objects.
         params
-            config_file (str): name (not path!) of the configuration file in /configs to use.
+            config_file (str): path of the configuration file to use.
             kwargs: additional command line parameters passed via main.py
         """
-        self.main_window = GUIWidgets.AlarmWindow()
-        self.settings_window = GUIWidgets.SettingsWindow()
-
         # Read the alarm configuration file and initialize and alarmenv object
         self.config = apconfig.AlarmConfig(config_file)
+
+        self.main_window = GUIWidgets.AlarmWindow()
+        self.settings_window = GUIWidgets.SettingsWindow(self.config)
 
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
         self.radio = RadioStreamer(self.config["radio"])
@@ -514,7 +514,7 @@ class Clock:
         app = QApplication.instance()
 
         with open(OUTPUT_FILE, "w") as f:
-            f.write("config file: {}\n".format(self.config.path_to_config))
+            f.write("config file: {}\n".format(self.config.config_file))
             json.dump(self.config.config, f, indent=4, cls=utils.DateTimeEncoder)
 
             f.write("\n{:15} {:9} {:12} {:14} {:11}".format("window", "isVisible", "isFullScreen", "isActiveWindow", "isEnabled"))
@@ -564,7 +564,12 @@ class AlarmWorker(QThread):
             self._play()
             self.play_finished_signal.emit(1)
         elif self.task == "build_and_play":
+            # Temporarily overwrite alarm_time in config to pass correct value to the greeting
+            old = self.alarm_builder.config["main"]["alarm_time"]
+            self.alarm_builder.config["main"]["alarm_time"] = datetime.now().strftime("%H:%M")
             self._build()
+            self.alarm_builder.config["main"]["alarm_time"] = old
+
             self.build_finished_signal.emit(1)
             self._play()
             self.play_finished_signal.emit(1)

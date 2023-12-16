@@ -18,7 +18,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Play an alarm using a specified configuration file")
     parser.add_argument("config", metavar="config", nargs="?",
-                        default="default.yaml", help="alarm configuration file in ./configs to use. Defaults to default.yaml")
+                        default="configs/default.yaml", help="Configuration file to use. Defaults to configs/default.yaml")
     args = parser.parse_args()
 
     config = apconfig.AlarmConfig(args.config)
