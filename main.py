@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run alarmpi GUI")
     parser.add_argument("config", metavar="config", nargs="?",
-                        default="default.yaml", help="Configuration file to use. Defaults to configs/default.yaml")
+                        default="configs/default.yaml", help="Configuration file to use. Defaults to configs/default.yaml")
     parser.add_argument("--fullscreen", action="store_true",
                         help="fullscreen mode")
     parser.add_argument("--debug", action="store_true",

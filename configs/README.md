@@ -1,11 +1,13 @@
 
 ## Alarm configuration
-Many features of the alarm, such as alarm content and radio streams to use, can be configured via a .yaml configuration file. By default `configs/default.yaml` will be used. Custom configuration files can be placed either to this folder or `$HOME/.alarmpi/`.
+Many features of the alarm, such as alarm content and radio streams to use, can be configured via a .yaml configuration file. By default `configs/default.yaml` will be used.
 
 
 ### default.yaml description
 
 **main**  
+* **alarm_time**
+  * Default alarm time in HH:MM format. This only pre-sets an alarm to be enabled (or overridden) from the GUI. 
 * **low_brightness**
   * Minimum value to set display brightness to when toggling between max and low brightness. Should be between 9 and 255.
 * **full_brightness_on_alarm**  
@@ -27,7 +29,7 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 
 **content**
   The define the TTS content of the alarm. 
-  * `handler` points to a module in the `/handlers` directory responsible for creating the content.
+  * `handler` points to a module in the `src/handlers/` folder responsible for creating the content.
   * Additional, content specific, configuration is also passed. For instance, to get weather data **openweathermap.org** needs a location and an API key. See https://openweathermap.org/appid for registering for an API key and http://bulk.openweathermap.org/sample/ for cityid codes.
 
 **Note:** content sections are parsed in the order they appear in the configuration. Therefore the greeting should come first.
@@ -68,19 +70,18 @@ Additional content known as plugins can be enabled:
 
 
 ## Using a custom configuration
-You can either modify the provided configuration file `default.yaml` or create a new file and pass that to `alarm_builder.py` and `main.py` via a command line argument, eg.
-```
+You can either modify the provided configuration file `default.yaml` or create a new file and pass that to `main.py` via a command line argument, eg.
+```bash
 python main.py my_config.yaml
 ```
 
-Note that only the filename should be provided. Custom configurations files can also be place in `$HOME/.alarmpi/`, which takes precedence of the two locations.
 
 
 ### Extending the alarm with custom content
 Extending the alarm with you're own content is simple:
 
- 1. Create a handler for your new content and place it in the `/src/handlers` folder. It should subclass `apcontent.AlarmpiContent` and implement the `build` method. This function is where the magic happens: it should store whatever string content to pass to the alarm as the `content` attribute. A minimal handler implementation is something like:
- ```
+ 1. Create a handler for your new content and place it in the `src/handlers/` folder. It should subclass `apcontent.AlarmpiContent` and implement the `build` method. This function is where the magic happens: it should store whatever string content to pass to the alarm as the `content` attribute. A minimal handler implementation is something like:
+ ```python
  from src import apcontent
 
  class Handler(apcontent.AlarmpiContent):

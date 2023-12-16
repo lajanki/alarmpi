@@ -29,11 +29,17 @@ from pyqtspinner import WaitingSpinner
 from src import utils
 
 
-
 # Create namedtuples for storing button and label configurations
-ButtonConfig = namedtuple("ButtonConfig", ["text", "position", "slot", "icon", "size_policy"])
+ButtonConfig = namedtuple(
+    "ButtonConfig", ["text", "position", "slot", "icon", "size_policy"]
+)
 ButtonConfig.__new__.__defaults__ = (
-    None, None, None, None, (QSizePolicy.Preferred, QSizePolicy.Preferred))
+    None,
+    None,
+    None,
+    None,
+    (QSizePolicy.Preferred, QSizePolicy.Preferred),
+)
 
 logger = logging.getLogger("eventLogger")
 
@@ -43,7 +49,8 @@ class AlarmWindow(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.control_buttons = {}  # setup a dict for tracking control buttons
+        # setup a dict for tracking control buttons
+        self.control_buttons = {}
         self.initUI()
 
     def initUI(self):
@@ -69,8 +76,14 @@ class AlarmWindow(QWidget):
             speed=1.0,
             color=QColor(255, 20, 20)
         )
-        loader_indicator_grid.addWidget(loader_indicator, alignment=Qt.AlignBottom | Qt.AlignLeft)
-        loader_indicator.setMinimumWidth(50)  # Force a minimum width to keep left alignment from covering part of the spinner
+        loader_indicator_grid.addWidget(
+            loader_indicator, alignment=Qt.AlignBottom | Qt.AlignLeft
+        )
+
+        # Force a minimum width to keep left alignment from covering part of the spinner
+        loader_indicator.setMinimumWidth(
+            50
+        )  
 
         self.left_plugin_grid = QVBoxLayout()
         left_grid_container.addLayout(self.left_plugin_grid)
@@ -105,10 +118,13 @@ class AlarmWindow(QWidget):
         for config in button_configs:
             button = QPushButton(config.text, self)
             button.setSizePolicy(*config.size_policy)
-            self.control_buttons[config.text] = button  # store a reference to the button
+            # store a reference to the button
+            self.control_buttons[config.text] = button 
 
             if config.icon:
-                button.setIcon(QIcon(os.path.join(utils.BASE, "resources", "icons", config.icon)))
+                button.setIcon(
+                    QIcon(os.path.join(utils.BASE, "resources", "icons", config.icon))
+                )
                 button.setIconSize(QSize(28, 28))
 
             bottom_grid.addWidget(button)
@@ -116,9 +132,14 @@ class AlarmWindow(QWidget):
         # Right hand sidebar: subgrids for plugin (weather) and a smaller radio play indicator
         radio_station_grid = QGridLayout()
         self.radio_play_indicator = QLabel(self)
-        radio_station_grid.addWidget(self.radio_play_indicator, 0, 0, Qt.AlignRight | Qt.AlignBottom)
+        radio_station_grid.addWidget(
+            self.radio_play_indicator, 0, 0, Qt.AlignRight | Qt.AlignBottom
+        )
 
-        self.right_plugin_grid = QGridLayout() # QGridLayout for setting weather/DHT22 plugin items to fixed rows
+        # QGridLayout for setting weather/DHT22 plugin items to fixed rows
+        self.right_plugin_grid = (
+            QGridLayout()
+        ) 
         right_grid_container.addLayout(self.right_plugin_grid)
         right_grid_container.addLayout(radio_station_grid)
 
@@ -143,6 +164,7 @@ class AlarmWindow(QWidget):
         """Set the main LCD display to the current time and start polling for
         with 1 second intervals.
         """
+
         def tick():
             self.clock_lcd.display(time.strftime("%H:%M:%S"))
             self.date_label.setText(time.strftime("%a %d.%m.%Y"))
@@ -159,7 +181,9 @@ class AlarmWindow(QWidget):
         self.move(qr.topLeft())
 
     def _show_radio_play_indicator(self, station_name):
-        html = "<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {}</span></html>".format(station_name)
+        html = "<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {}</span></html>".format(
+            station_name
+        )
         self.radio_play_indicator.setText(html)
 
     def _hide_radio_play_indicator(self):
@@ -167,8 +191,13 @@ class AlarmWindow(QWidget):
 
 
 class SettingsWindow(QWidget):
+    """Settings window."""
 
-    def __init__(self):
+    def __init__(self, config):
+        """Args:
+            config (apconfig.AlarmConfig): config object for the alarm.
+        """
+        self.config = config
         super().__init__()
         self.control_buttons = {}
         self.numpad_buttons = {}
@@ -216,7 +245,8 @@ class SettingsWindow(QWidget):
 
         # Labels for displaying current active alarm time and time
         # set using the numpad controls.
-        self.input_alarm_time_label = QLabel(Status.EMPTY.value, self)
+        self.input_alarm_time_label = QLabel(self.config["main"]["alarm_time"], self)
+
         self.input_alarm_time_label.setAlignment(Qt.AlignCenter)
         right_grid.addWidget(self.input_alarm_time_label, 4, 1)
 
@@ -237,7 +267,9 @@ class SettingsWindow(QWidget):
                 button.clicked.connect(config.slot)
 
             if config.icon:
-                button.setIcon(QIcon(os.path.join(utils.BASE, "resources", "icons", config.icon)))
+                button.setIcon(
+                    QIcon(os.path.join(utils.BASE, "resources", "icons", config.icon))
+                )
                 button.setIconSize(QSize(28, 28))
 
             bottom_grid.addWidget(button)
@@ -250,8 +282,7 @@ class SettingsWindow(QWidget):
         # ComboBox for radio station, filled from config file
         self.radio_station_combo_box = QComboBox(self)
         self.radio_station_combo_box.setSizePolicy(
-            QSizePolicy.Preferred,
-            QSizePolicy.Expanding  # expand in vertical direction
+            QSizePolicy.Preferred, QSizePolicy.Expanding  # expand in vertical direction
         )
 
         self.alarm_time_status_label = QLabel(self)
@@ -293,8 +324,11 @@ class SettingsWindow(QWidget):
     def clear_labels_and_close(self):
         """Button callback - close window. Close the settings window and clear any
         temporary status messages."""
-        if self.alarm_time_status_label.text() in (Status.ERROR.value, Status.CLEAR.value):
-             self.alarm_time_status_label.setText("")
+        if self.alarm_time_status_label.text() in (
+            Status.ERROR.value,
+            Status.CLEAR.value,
+        ):
+            self.alarm_time_status_label.setText("")
 
         logger.debug("Closing settings window")
         self.hide()
@@ -392,6 +426,7 @@ class MediaPlayerWindow(QWidget):
 
 class Status(Enum):
     """Status messages to show in status label and input time label."""
+
     ERROR = "<font color='#FF1414'>ERROR: Invalid time</font>"
     CLEAR = "Alarm cleared"
     EMPTY = "  :  "

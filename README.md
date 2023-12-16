@@ -94,47 +94,31 @@ Run the script either with
 ```bash
 python main.py [configuration_file]
 ```
-or
+where `[configuration_file]` is a path to an optional alarm configuration file, eg.
 ```bash
-python play_alarm.py [configuration_file]
-```
-where `[configuration_file]` is an optional alarm configuration file either in `./configs/` or `$HOME/.alarmpi/`, ie.
-```bash
-python main.py default.yaml
+python main.py ~/alarm_config.yaml
 ```
 If no argument is used, `./configs/default.yaml` will be used.
 
 
+This opens a digital clock interface with current time as well a settings window for setting the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
 
-The first runs a GUI version of the script. It includes a digital clock interface for current time as well a settings window for setting the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
+If the radio stream is enabled as part of the alarm it will be played in a separate process using `cvlc` command line media player.
 
-The second form generates an alarm based on the configuration file and plays it. This can be used as a purely CLI interface for the alarm. Use cron to manually schedule an alarm.
+When activated, the alarm works as a toggle; once it triggers, it will be deactivated and needs to be re-enabled in order to trigger again the next morning.
 
-If the radio stream is enabled as part of the alarm it will be played in a separate process using `cvlc` command line media player. When used as CLI alarm, the included `stop.sh` shell script can be used to terminate the stream.
+The optional configuration file can be used to customize the alarm as well as additional plugin based functionality, see [configs/README.md](./configs/README.md) for instructions.
 
-When used from the GUI, the alarm works as a toggle. Once the alarm triggers, it will be deactivated and needs to be re-enabled in order to trigger again the next morning. Previous alarm time, however, is saved and need not be reset every time. 
-
-The optional argument in both forms is a path to a configuration file for customizing the alarm, see [configs/README.md](./configs/README.md) for instructions. By default `configs/default.yaml` will be used.
-
+You can also run a purely CLI version of the alarm with
+```bash
+python play_alarm.py [configuration_file]
+```
+You can use cron to manually schedule an alarm.
 
 ### Note about locales
 While the TTS alarm is played in English, weekday and month names will be generated according to the runtime environment's current locale. If necessary, the relevant locale setting can be set to English with something like:
 ```bash
 LC_TIME=en_GB.utf8 python main.py wakeup.yaml
-```
-
-
-The full interface to `main.py` is:
-```
-Run alarmpi GUI
-
-positional arguments:
-  config        path to an alarm configuration file. Defaults to default.yaml
-
-optional arguments:
-  -h, --help    show this help message and exit
-  --fullscreen  launch the script in fullscreen mode
-  --debug       launch in debug mode
 ```
 
 ## Unit tests

@@ -8,9 +8,10 @@ from src import apcontent
 class Greeting(apcontent.AlarmpiContent):
     """Creates greeting messages based on current time of day."""
 
-    def __init__(self, section_data, alarm_time_override):
-        super().__init__(section_data)
-        self.alarm_time_override = alarm_time_override
+    def __init__(self, alarm_config):
+        self.config = alarm_config
+        greeting_data = alarm_config["content"]["greeting"]
+        super().__init__(greeting_data)
 
     def build(self):
         today = datetime.today()
@@ -19,10 +20,7 @@ class Greeting(apcontent.AlarmpiContent):
         current_month = today.strftime("%B")
 
         # Convert 24 hour override format to 12 hour format
-        if self.alarm_time_override:
-            alarm_time = datetime.strptime(self.alarm_time_override, "%H:%M").strftime("%I:%M %p") # eg. 6:36 pm
-        else:
-            alarm_time = datetime.now().strftime("%I:%M %p")
+        alarm_time = datetime.strptime(self.config["main"]["alarm_time"], "%H:%M").strftime("%I:%M %p") # eg. 6:36 pm
 
         if today.hour < 12:
             period = "morning"
