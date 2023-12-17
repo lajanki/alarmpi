@@ -189,7 +189,7 @@ class MediaPlayWorker(QThread):
 
     def stop(self):
         """Terminate the thread."""
-        event_logger.info("Stopping media thread")
+        event_logger.debug("Stopping media thread")
         self.play_finished_signal.emit(1)
         # The vlc process needs to be explicitely terminated
         try:
