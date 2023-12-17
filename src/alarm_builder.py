@@ -10,7 +10,7 @@ import requests.exceptions
 import pydub
 import pydub.playback
 
-from src import utils
+from src.utils import utils
 from src.handlers import get_festival_tts, get_greeting
 
 

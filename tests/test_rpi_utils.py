@@ -1,7 +1,7 @@
 import pytest
 from unittest import mock
 
-from src import rpi_utils
+from src.utils import rpi_utils
 
 
 @pytest.fixture()

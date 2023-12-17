@@ -1,21 +1,15 @@
-import subprocess
-import re
 import json
 import os.path
-from datetime import datetime, date, timedelta
+import re
+import subprocess
+from datetime import datetime, date
 
 from PyQt5.QtGui import QPixmap
 
 
-BASE = os.path.join(os.path.dirname(__file__), "..")
+BASE = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
-class DateTimeEncoder(json.JSONEncoder):
-    """Custom json encoder handling datetime objects."""
-    def default(self, z):
-        if isinstance(z, datetime):
-            return (str(z))
-        return super().default(z)
 
 def time_str_to_dt(s):
     """Convert a time string in HH:MM format to a datetime object.
