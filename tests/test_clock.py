@@ -31,7 +31,7 @@ def dummy_clock():
     return create_clock()
 
 
-class TestClockCase():
+class TestClock():
     """Test cases for logic functions for determining alarm time in Clock."""
 
     @patch("src.GUIWidgets.SettingsWindow.validate_alarm_input")
@@ -212,7 +212,7 @@ def dummy_radio():
     radio_args = {"args": "-playlist url", "url": ""}
     return clock.RadioStreamer(radio_args)
 
-class TestRadioStreamerCase():
+class TestRadioStreamer():
     """Test cases for RadioStreamer: does streaming radio work correctly?"""
 
     def test_radio_not_playing_on_empty_process(self, dummy_radio):
