@@ -52,11 +52,15 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true",
                         help="debug mode")
     args = parser.parse_args()
+
+    if args.config == parser.get_default("config"):
+        event_logger.info("No config specified, defaulting to %s", args.config)
+
     kwargs = vars(args)
     config = kwargs.pop("config")
 
     app = QApplication(sys.argv)
-    with open("src/style.qss") as f:
+    with open("style.qss") as f:
         app.setStyleSheet(f.read())
 
     if args.debug:
