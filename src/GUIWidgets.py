@@ -1,28 +1,27 @@
-"""PyQt5 QWidgets for main and settings windows."""
+# QWidgets for the main UI windows.
 
-
-import time
-import os.path
 import logging
-from functools import partial
+import os.path
+import time
 from collections import namedtuple
 from enum import Enum
+from functools import partial
 
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtWidgets import (
-    QWidget,
-    QLabel,
-    QPushButton,
-    QLCDNumber,
-    QGridLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QSizePolicy,
-    QDesktopWidget,
     QCheckBox,
     QComboBox,
-    QSlider
+    QDesktopWidget,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLCDNumber,
+    QPushButton,
+    QSizePolicy,
+    QSlider,
+    QVBoxLayout,
+    QWidget
 )
 from pyqtspinner import WaitingSpinner
 

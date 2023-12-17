@@ -1,11 +1,11 @@
-import subprocess
-import re
 import json
 import os.path
+import re
+import subprocess
 from datetime import datetime, date, timedelta
 
-from PyQt5.QtGui import QPixmap
 from mutagen.id3 import ID3, ID3NoHeaderError
+from PyQt5.QtGui import QPixmap
 
 BASE = os.path.join(os.path.dirname(__file__), "..")
 

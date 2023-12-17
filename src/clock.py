@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-"""A PyQt5 clock radio application."""
+# A PyQt5 clock radio application.
+# Main logic for connecting UI elements and control flow.
 
-import subprocess
-import logging
 import json
+import logging
 import signal
-from functools import partial
+import subprocess
 from datetime import datetime, timedelta
+from functools import partial
 
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
@@ -550,7 +551,9 @@ class Clock:
         if event.key() == Qt.Key_F2:
             self._debug_signal_handler(None, None)
 
+
 class AlarmWorker(QThread):
+    """QThread subclass for building and playing alarms in a separate thread."""
     play_finished_signal = pyqtSignal(int)
     build_finished_signal = pyqtSignal(int)
 
@@ -588,6 +591,7 @@ class AlarmWorker(QThread):
             self.build_finished_signal.emit(1)
             self._play()
             self.play_finished_signal.emit(1)
+
 
 class RadioStreamer:
     """Helper class for playing a radio stream via cvlc."""
