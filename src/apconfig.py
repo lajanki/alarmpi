@@ -54,12 +54,13 @@ class AlarmConfig:
 
     def validate(self):
         """Validate configuration file: checks that
-        * content and TTS sections have 'handler' key
-        * at most 1 TTS engine is enabled
-        * low_brightness value is valid
-        * default radio station is valid
-        * nighttime values are in HH:MM
-        * alarm_time is in HH:MM
+            * content and TTS sections have 'handler' key
+            * at most 1 TTS engine is enabled
+            * low_brightness value is valid
+            * default radio station is valid
+            * nighttime values are in HH:MM
+            * alarm_time is in HH:MM
+            * media path pattern is not empty
         """
 
         for item in self["content"]:
@@ -101,6 +102,8 @@ class AlarmConfig:
             logger.warning("alarm_time %s is not valid, Defaulting to 07:00", self["main"]["alarm_time"])
             self["main"]["alarm_time"] = "07:00"
 
+        # Media path should contain at least 1 file. 
+        # Content of the file is *not* validated, vlc will silently ignore unsupported files.
         if self["media"]["enabled"]:
             assert glob.glob(self["media"]["path"]), "Path to wakeup song is not valid"
 
