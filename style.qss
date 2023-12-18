@@ -4,13 +4,18 @@ QLCDNumber {
   border: 0px;
 }
 
-AlarmWindow, MediaPlayerWindow {
-  background-color: #090201;
-}
-
-AlarmWindow, MediaPlayerWindow QLabel {
+AlarmWindow QLabel {
   color: #FF1414;
   font: 18pt;
+}
+
+MediaPlayerWindow QLabel {
+  color: #FF1414;
+  font: 18pt;
+}
+
+AlarmWindow, MediaPlayerWindow {
+  background-color: #090201;
 }
 
 AlarmWindow QLabel#date_label {
