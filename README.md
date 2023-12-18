@@ -28,7 +28,7 @@ Thats all for now. Have a nice day.
 [Play on SoundCloud](https://soundcloud.com/lajanki/pialarm_sample)
 
 
-This is a fork of skiwithpete's alarmpi project: https://github.com/skiwithpete/alarmpi. After seeing it on [YouTube](https://youtu.be/julETnOLkaU), I thought it was neat and knew I wanted to use it to replace my old night table clock radio.
+This is a fork of https://github.com/skiwithpete/alarmpi. After seeing it on [YouTube](https://youtu.be/julETnOLkaU), I thought it was neat and knew I wanted to use it to replace my old night table clock radio.
 
 
 ## Main Features
@@ -55,7 +55,7 @@ While this is built for a Rapsberry Pi, other Linux systems can be used for the 
 
 The DHT22 sensor is used for indoor temperature measurement and can be disabled from the configuration, see [configs/README.md](./configs/README.md).
 
-It's also possible to run the alarm without the GUI on a headless setup, see Usage below.
+It's also possible to run the alarm without the GUI on a headless setup, see _Usage_ below.
 
 
 ## Setup

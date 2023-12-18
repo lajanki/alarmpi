@@ -181,6 +181,23 @@ class TestClockCase():
             dummy_clock.config["main"]["nighttime"]["start_dt"] == datetime(2021, 7, 31, 22, 0)
             dummy_clock.config["main"]["nighttime"]["end_dt"] == datetime(2021, 8, 1, 7, 0)
 
+    @patch("src.alarm_builder.subprocess.run")
+    def test_wakeup_song_window(mock_subprocess_run, dummy_clock):
+        """Is the media play window displayed when slot function called
+        and closed on button press?
+        (TODO: This does not test the actually signal being sent/received as 
+        it requires a running event loop)
+        """
+        # Initially hidden
+        assert dummy_clock.media_window.isHidden()
+
+        dummy_clock.display_media_window()
+        assert dummy_clock.media_window.isVisible()
+
+        # Window should be closed on button press
+        dummy_clock.media_window.button.click()
+        assert dummy_clock.media_window.isHidden()
+
 
 #### AlarmWorker
 

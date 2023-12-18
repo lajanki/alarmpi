@@ -50,6 +50,10 @@ radio:
   default: Radio Suomi
   args: ""
 
+media:
+  enabled: false
+  path: /path/to/media_files/*.mp3
+
 plugins:
   HSL:
     enabled: false

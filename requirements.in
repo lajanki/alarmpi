@@ -4,6 +4,7 @@ flake8
 freezegun
 google-cloud-texttospeech
 ipython
+mutagen
 num2words
 pip-tools
 pydub

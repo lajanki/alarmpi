@@ -80,6 +80,8 @@ matplotlib-inline==0.1.6
     # via ipython
 mccabe==0.7.0
     # via flake8
+mutagen==1.47.0
+    # via -r requirements.in
 num2words==0.5.13
     # via -r requirements.in
 packaging==23.2

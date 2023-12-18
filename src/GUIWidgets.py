@@ -1,28 +1,27 @@
-"""PyQt5 QWidgets for main and settings windows."""
+# QWidgets for the main UI windows.
 
-
-import time
-import os.path
 import logging
-from functools import partial
+import os.path
+import time
 from collections import namedtuple
 from enum import Enum
+from functools import partial
 
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtWidgets import (
-    QWidget,
-    QLabel,
-    QPushButton,
-    QLCDNumber,
-    QGridLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QSizePolicy,
-    QDesktopWidget,
     QCheckBox,
     QComboBox,
-    QSlider
+    QDesktopWidget,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLCDNumber,
+    QPushButton,
+    QSizePolicy,
+    QSlider,
+    QVBoxLayout,
+    QWidget
 )
 from pyqtspinner import WaitingSpinner
 
@@ -391,6 +390,37 @@ class SettingsWindow(QWidget):
     def set_alarm_input_time_label(self, time):
         """Helper function for setting the numpad label displaying selected time."""
         self.input_alarm_time_label.setText(time)
+
+
+class MediaPlayerWindow(QWidget):
+    """Small temporary window for wakeup song currently playing."""
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        base_layout = QGridLayout(self)
+        self.setLayout(base_layout)
+
+        self.song_label = QLabel(self)
+        self.button = QPushButton(self)
+        self.button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+
+        self.button.setIcon(QIcon(os.path.join(utils.BASE, "resources", "icons", "musical_note64x64.png")))
+        self.button.setIconSize(QSize(28, 28))
+        base_layout.addWidget(self.button)
+
+        self.resize(400, 180)
+        self.center()
+
+        self.setWindowTitle("Click to continue...")
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
 
 class Status(Enum):

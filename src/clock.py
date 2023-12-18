@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-"""A PyQt5 clock radio application."""
+# A PyQt5 clock radio application.
+# Main logic for connecting UI elements and control flow.
 
-import subprocess
-import logging
 import json
+import logging
 import signal
-from functools import partial
+import subprocess
 from datetime import datetime, timedelta
+from functools import partial
 
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
@@ -37,11 +38,17 @@ class Clock:
         """
         # Read the alarm configuration file and initialize and alarmenv object
         self.config = apconfig.AlarmConfig(config_file)
+        self.alarm_player = alarm_builder.AlarmBuilder(self.config)
 
         self.main_window = GUIWidgets.AlarmWindow()
         self.settings_window = GUIWidgets.SettingsWindow(self.config)
+        self.media_window = GUIWidgets.MediaPlayerWindow()
 
-        self.alarm_player = alarm_builder.AlarmBuilder(self.config)
+        # Connect slots for media player window 
+        self.media_window.button.clicked.connect(lambda event: self.alarm_player.media_play_thread.stop())
+        self.alarm_player.media_play_thread.play_started_signal.connect(self.display_media_window)
+        self.alarm_player.media_play_thread.play_finished_signal.connect(self.media_window.hide)
+
         self.radio = RadioStreamer(self.config["radio"])
 
         # Setup a QThread and QTimers for building and playing the alarm
@@ -405,6 +412,14 @@ class Clock:
         self.main_window.waiting_spinner.start()
         self.build_and_play_thread.start()
 
+    def display_media_window(self, data):
+        """Slot for displaying a window for a wakeup song.
+        Args:
+            data (str): song name to display; emitted from the AlarmBuilder.
+        """
+        self.media_window.button.setText(data)
+        self.media_window.show()
+
     def toggle_display_mode(self):
         """Button callback - toggle window. Change main window display mode between
         fullscreen and windowed depending on current its state.
@@ -465,10 +480,11 @@ class Clock:
         self.settings_window.volume_label.setPixmap(icon)
 
     def cleanup_and_exit(self):
-        """Button callback - Exit application. Close any existing radio streams and the
+        """Button callback - Exit application. Close any existing media streams and the
         application itself.
         """
         self.radio.stop()
+        self.alarm_player.media_play_thread.stop()
 
         # Ensure display is on and at full brightness
         rpi_utils.toggle_screen_state("on")
@@ -535,10 +551,11 @@ class Clock:
         if event.key() == Qt.Key_F2:
             self._debug_signal_handler(None, None)
 
+
 class AlarmWorker(QThread):
+    """QThread subclass for building and playing alarms in a separate thread."""
     play_finished_signal = pyqtSignal(int)
     build_finished_signal = pyqtSignal(int)
-    audio = None
 
     def __init__(self, builder, *args, task):
         super().__init__()
@@ -548,13 +565,14 @@ class AlarmWorker(QThread):
     def _build(self):
         """Build and alarm."""
         event_logger.info("Building alarm")
-        AlarmWorker.audio = self.alarm_builder.build()
+        self.alarm_builder.build()
 
     def _play(self):
         """Play an existing alarm."""
-        # Play unless explicitely ignored in config
-        if not self.alarm_builder.config._get_debug_option("DO_NOT_PLAY_ALARM"):
-            self.alarm_builder.play(AlarmWorker.audio)      
+        if self.alarm_builder.config._get_debug_option("DO_NOT_PLAY_ALARM"):
+            return
+
+        self.alarm_builder.play()
 
     def run(self):
         if self.task == "build":
@@ -574,6 +592,7 @@ class AlarmWorker(QThread):
             self._play()
             self.play_finished_signal.emit(1)
 
+
 class RadioStreamer:
     """Helper class for playing a radio stream via cvlc."""
     def __init__(self, config):
@@ -581,7 +600,7 @@ class RadioStreamer:
         self.config = config
 
     def is_playing(self):
-        """Check if cvlc is currently running."""
+        """Check if a radio stream is currently running."""
         return self.process is not None
 
     def play(self, url):

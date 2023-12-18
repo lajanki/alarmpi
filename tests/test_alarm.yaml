@@ -50,6 +50,9 @@ radio:
   default: Foo
   args: ""
 
+media:
+  enabled: false
+
 plugins:
   HSL:
     enabled: false
