@@ -139,7 +139,7 @@ class AlarmBuilder:
         """Given config file section name, return the class matching the handler."""
         # use importlib to dynamically import the correct module within
         # the 'handlers' package.
-        path_to_module = "src.handlers.{}".format(section["handler"][:-3])
+        path_to_module = f"src.handlers.{section['handler'][:-3]}"
         handler_module = importlib.import_module(path_to_module)
 
         # Inspect the handler module for classes and return the first class.
@@ -153,7 +153,7 @@ class AlarmBuilder:
         url = self.config["radio"]["urls"][default_station]
 
         args = self.config["radio"].get("args", "")
-        cmd = "/usr/bin/cvlc {} {}".format(url, args).split()
+        cmd = f"/usr/bin/cvlc {url} {args}".split()
         # Run the command via Popen directly to open the stream as a child process without
         # waiting for it to finish.
         subprocess.Popen(cmd)

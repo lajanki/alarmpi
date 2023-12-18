@@ -565,7 +565,6 @@ class Clock:
             debug_write.signal_handler(self.config)
 
 
-
 class AlarmWorker(QThread):
     """QThread subclass for building and playing alarms in a separate thread."""
     play_finished_signal = pyqtSignal(int)
@@ -625,7 +624,7 @@ class RadioStreamer:
         in the background.
         """
         args = self.config.get("args", "")
-        cmd = "/usr/bin/cvlc {} {}".format(url, args)
+        cmd = f"/usr/bin/cvlc {url} {args}"
         event_logger.info("Running %s", cmd)
 
         # Run the command via Popen directly to open the stream as an independent child

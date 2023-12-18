@@ -180,9 +180,7 @@ class AlarmWindow(QWidget):
         self.move(qr.topLeft())
 
     def _show_radio_play_indicator(self, station_name):
-        html = "<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {}</span></html>".format(
-            station_name
-        )
+        html = f"<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {station_name}</span></html>"
         self.radio_play_indicator.setText(html)
 
     def _hide_radio_play_indicator(self):
@@ -384,7 +382,7 @@ class SettingsWindow(QWidget):
 
     def set_alarm_input_success_message_with_time(self, time):
         """Helper function for setting the left pane alarm time info label."""
-        msg = "Alarm set for {}".format(time)
+        msg = f"Alarm set for {time}"
         self.alarm_time_status_label.setText(msg)
 
     def set_alarm_input_time_label(self, time):
