@@ -58,11 +58,12 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
 
 @patch("src.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_tts_fails(mock_play_beep, dummy_alarm_builder):
-    """Is the beep played when no network connection is detected?"""
+    """Is the beep played when a network error occurs?"""
     dummy_alarm_builder.tts_client = Mock()
     dummy_alarm_builder.tts_client.play.side_effect = requests.exceptions.HTTPError
+    dummy_alarm_builder.audio = Mock()
 
-    dummy_alarm_builder.play("dummy content")
+    dummy_alarm_builder.play()
     mock_play_beep.assert_called()
 
 @patch("src.alarm_builder.AlarmBuilder.play_beep")
@@ -70,7 +71,7 @@ def test_beep_played_when_tts_disabled(mock_play_beep, dummy_alarm_builder):
     """Is the beep played when TTS is disabled in the configuration?"""
     dummy_alarm_builder.config["main"]["TTS"] = False
 
-    dummy_alarm_builder.play("dummy content")
+    dummy_alarm_builder.play()
     mock_play_beep.assert_called()
 
 def test_alarm_time_override(dummy_alarm_builder):
@@ -83,3 +84,17 @@ def test_alarm_time_without_override(dummy_alarm_builder):
     """Is alarm time current time?"""
     greeting = dummy_alarm_builder.generate_greeting()
     assert "the time is 07:02" in greeting.lower()
+
+@patch("src.alarm_builder.MediaPlayWorker")
+def test_wakeup_song_played(mock_media_play_worker):
+    """Is the wakeup song thread started as part of the alarm when enabled?"""
+
+    # Create a builder with the mocked media worker
+    PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
+    config = apconfig.AlarmConfig(PATH_TO_CONFIG)
+    builder = alarm_builder.AlarmBuilder(config)
+    builder.config["main"]["TTS"] = False
+    builder.config["media"]["enabled"] = True
+
+    builder.play()
+    builder.media_play_thread.start.assert_called()

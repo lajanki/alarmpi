@@ -5,9 +5,9 @@
 # schedule an alarm. To run the alarm directly, run alarm_builder.py.
 
 import argparse
-import sys
 import logging
 import logging.config
+import sys
 
 from PyQt5.QtWidgets import QApplication
 
