@@ -164,11 +164,6 @@ class Clock:
         )
         self.nighttime_update_timer.start(DELAY_UNTIL_DAYTIME * 1000)
 
-        alarm_brightness_enabled = self.config["main"]["full_brightness_on_alarm"]
-        self.settings_window.alarm_brightness_checkbox.setChecked(
-            alarm_brightness_enabled
-        )
-
         # Set main window's alarm time display to currently active alarm time
         alarm_time = self.get_current_active_alarm()
         if alarm_time:
@@ -252,12 +247,6 @@ class Clock:
                 {"enabled": state == Qt.CheckState.Checked}
             )
         )
-        self.settings_window.alarm_brightness_checkbox.stateChanged.connect(
-            lambda state: self.config.config["main"].update(
-                {"full_brightness_on_alarm": state == Qt.CheckState.Checked}
-            )
-        )
-
         self.settings_window.wakeup_song_checkbox.stateChanged.connect(
             lambda state: self.config.config["media"].update(
                 {"enabled": state == Qt.CheckState.Checked}
