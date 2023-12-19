@@ -43,3 +43,8 @@ QSlider::handle:horizontal {
     border-radius: 20px;
     padding: -20px 0px;
 }
+
+QCheckBox::indicator {
+     width: 25px;
+     height: 25px;
+ }

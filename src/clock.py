@@ -134,8 +134,11 @@ class Clock:
         tts_enabled = self.config["main"]["TTS"]
         self.settings_window.readaloud_checkbox.setChecked(tts_enabled)
 
-        nightmode = self.config["main"]["nighttime"].get("enabled", False)
-        self.settings_window.nightmode_checkbox.setChecked(nightmode)
+        nightmode_status = self.config["main"]["nighttime"].get("enabled", False)
+        self.settings_window.nightmode_checkbox.setChecked(nightmode_status)
+
+        wakeup_song_status = self.config["media"].get("enabled", False)
+        self.settings_window.wakeup_song_checkbox.setChecked(wakeup_song_status)
 
         # Store nighttime range as datetimes to config.
         start_dt = utils.time_str_to_dt(self.config["main"]["nighttime"]["start"])
@@ -252,6 +255,12 @@ class Clock:
         self.settings_window.alarm_brightness_checkbox.stateChanged.connect(
             lambda state: self.config.config["main"].update(
                 {"full_brightness_on_alarm": state == Qt.CheckState.Checked}
+            )
+        )
+
+        self.settings_window.wakeup_song_checkbox.stateChanged.connect(
+            lambda state: self.config.config["media"].update(
+                {"enabled": state == Qt.CheckState.Checked}
             )
         )
 
