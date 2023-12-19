@@ -242,7 +242,7 @@ class SettingsWindow(QWidget):
 
         # Labels for displaying current active alarm time and time
         # set using the numpad controls.
-        self.input_alarm_time_label = QLabel(self.config["main"]["alarm_time"], self)
+        self.input_alarm_time_label = QLabel(self.config["main"]["alarm_time"], self, objectName="input_alarm_time_label")
 
         self.input_alarm_time_label.setAlignment(Qt.AlignCenter)
         right_grid.addWidget(self.input_alarm_time_label, 4, 1)
@@ -282,7 +282,7 @@ class SettingsWindow(QWidget):
             QSizePolicy.Preferred, QSizePolicy.Expanding  # expand in vertical direction
         )
 
-        self.alarm_time_status_label = QLabel(self)
+        self.alarm_time_status_label = QLabel(self, objectName="alarm_time_status_label")
 
         left_grid.addWidget(self.readaloud_checkbox, 0, 0)
         left_grid.addWidget(self.wakeup_song_checkbox, 1, 0)

@@ -23,6 +23,17 @@ AlarmWindow QLabel#date_label {
   margin-top: 10px;
 }
 
+SettingsWindow QLabel#input_alarm_time_label {
+  font: 14pt;
+}
+
+SettingsWindow QLabel#alarm_time_status_label {
+  font: 12pt;
+  margin-top: 10px;
+  margin-bottom: 15px;
+
+}
+
 MediaPlayerWindow QPushButton {
   background-color: #090201;
   color: #FF1414;
