@@ -81,10 +81,10 @@ class Clock:
         if kwargs.get("fullscreen"):
             self.main_window.showFullScreen()
 
-            # Hide mouse cursor unless in debug mode
-            if not kwargs.get("debug"):
-                self.main_window.setCursor(Qt.BlankCursor)
-                self.settings_window.setCursor(Qt.BlankCursor)
+        if rpi_utils.IS_RASPBERRY_PI:
+            self.main_window.setCursor(Qt.BlankCursor)
+            self.settings_window.setCursor(Qt.BlankCursor)
+            self.media_window.setCursor(Qt.BlankCursor)
 
         if kwargs.get("debug"):
             self.config["radio"]["enabled"] = False
