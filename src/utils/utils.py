@@ -2,20 +2,15 @@ import json
 import os.path
 import re
 import subprocess
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 from mutagen.id3 import ID3, ID3NoHeaderError
 from PyQt5.QtGui import QPixmap
 
-BASE = os.path.join(os.path.dirname(__file__), "..")
+
+BASE = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
-class DateTimeEncoder(json.JSONEncoder):
-    """Custom json encoder handling datetime objects."""
-    def default(self, z):
-        if isinstance(z, datetime):
-            return (str(z))
-        return super().default(z)
 
 
 def time_str_to_dt(s):
@@ -37,7 +32,7 @@ def get_volume(card):
         card (int): the sound card to read, see aplay -l for list of
         cards available.
     """
-    res = subprocess.run("amixer -c {} sget PCM".format(card).split(), capture_output=True)
+    res = subprocess.run(f"amixer -c {card} sget PCM".split(), capture_output=True)
 
     # Response contains volume level as percentage, parse the digits
     s = re.search("\[(\d*)%\]", res.stdout.decode("utf8"))
@@ -49,7 +44,7 @@ def set_volume(card, level):
         card (int): same as get_volume
         level (int): volume level as percentage, 0 - 100
     """
-    subprocess.run("amixer --quiet -c {} sset PCM {}%".format(card, level).split())
+    subprocess.run(f"amixer --quiet -c {card} sset PCM {level}%".split())
 
 def get_volume_icon(mode):
     """Determine icon set to use as volume level. If Adwaita Ubuntu theme exists use its icons.

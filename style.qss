@@ -4,18 +4,34 @@ QLCDNumber {
   border: 0px;
 }
 
-AlarmWindow, MediaPlayerWindow {
-  background-color: #090201;
-}
-
-AlarmWindow, MediaPlayerWindow QLabel {
+AlarmWindow QLabel {
   color: #FF1414;
   font: 18pt;
+}
+
+MediaPlayerWindow QLabel {
+  color: #FF1414;
+  font: 18pt;
+}
+
+AlarmWindow, MediaPlayerWindow {
+  background-color: #090201;
 }
 
 AlarmWindow QLabel#date_label {
   font: 16pt;
   margin-top: 10px;
+}
+
+SettingsWindow QLabel#input_alarm_time_label {
+  font: 14pt;
+}
+
+SettingsWindow QLabel#alarm_time_status_label {
+  font: 12pt;
+  margin-top: 10px;
+  margin-bottom: 15px;
+
 }
 
 MediaPlayerWindow QPushButton {
@@ -38,3 +54,8 @@ QSlider::handle:horizontal {
     border-radius: 20px;
     padding: -20px 0px;
 }
+
+QCheckBox::indicator {
+     width: 25px;
+     height: 25px;
+ }

@@ -31,7 +31,7 @@ def dummy_clock():
     return create_clock()
 
 
-class TestClockCase():
+class TestClock():
     """Test cases for logic functions for determining alarm time in Clock."""
 
     @patch("src.GUIWidgets.SettingsWindow.validate_alarm_input")
@@ -70,7 +70,7 @@ class TestClockCase():
         assert settings_window_value == "Alarm cleared"
 
     @patch("PyQt5.QtWidgets.QLCDNumber.display")
-    @patch("src.rpi_utils.set_display_backlight_brightness")
+    @patch("src.utils.rpi_utils.set_display_backlight_brightness")
     def test_play_alarm_starts_alarm_play_thread(self, mock_set_display_backlight_brightness, mock_display, dummy_clock):
         """Does the timer slot function for playing the alarm set window brightness,
         clearn main window label and start the alarm play thread?
@@ -119,8 +119,8 @@ class TestClockCase():
         label_time = dummy_clock.settings_window.input_alarm_time_label.text()
         assert label_time == "07:16"
 
-    @patch("src.rpi_utils.set_display_backlight_brightness")
-    @patch("src.rpi_utils._get_value")
+    @patch("src.utils.rpi_utils.set_display_backlight_brightness")
+    @patch("src.utils.rpi_utils._get_value")
     def test_brightness_toggle(self, mock_get_value, mock_set_brightness, dummy_clock):
         """Does the backlight toggle change brightness from low to high?"""
         mock_get_value.return_value = 12
@@ -229,7 +229,7 @@ def dummy_radio():
     radio_args = {"args": "-playlist url", "url": ""}
     return clock.RadioStreamer(radio_args)
 
-class TestRadioStreamerCase():
+class TestRadioStreamer():
     """Test cases for RadioStreamer: does streaming radio work correctly?"""
 
     def test_radio_not_playing_on_empty_process(self, dummy_radio):

@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 )
 from pyqtspinner import WaitingSpinner
 
-from src import utils
+from src.utils import utils
 
 
 # Create namedtuples for storing button and label configurations
@@ -180,9 +180,7 @@ class AlarmWindow(QWidget):
         self.move(qr.topLeft())
 
     def _show_radio_play_indicator(self, station_name):
-        html = "<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {}</span></html>".format(
-            station_name
-        )
+        html = f"<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {station_name}</span></html>"
         self.radio_play_indicator.setText(html)
 
     def _hide_radio_play_indicator(self):
@@ -244,7 +242,7 @@ class SettingsWindow(QWidget):
 
         # Labels for displaying current active alarm time and time
         # set using the numpad controls.
-        self.input_alarm_time_label = QLabel(self.config["main"]["alarm_time"], self)
+        self.input_alarm_time_label = QLabel(self.config["main"]["alarm_time"], self, objectName="input_alarm_time_label")
 
         self.input_alarm_time_label.setAlignment(Qt.AlignCenter)
         right_grid.addWidget(self.input_alarm_time_label, 4, 1)
@@ -275,8 +273,8 @@ class SettingsWindow(QWidget):
 
         # ** Left grid: misc settings **
         self.readaloud_checkbox = QCheckBox("Enable Text-to-Speech alarm", self)
+        self.wakeup_song_checkbox = QCheckBox("Enable wakeup song", self)
         self.nightmode_checkbox = QCheckBox("Enable Nightmode", self)
-        self.alarm_brightness_checkbox = QCheckBox("Full Brightness on alarm", self)
 
         # ComboBox for radio station, filled from config file
         self.radio_station_combo_box = QComboBox(self)
@@ -284,11 +282,11 @@ class SettingsWindow(QWidget):
             QSizePolicy.Preferred, QSizePolicy.Expanding  # expand in vertical direction
         )
 
-        self.alarm_time_status_label = QLabel(self)
+        self.alarm_time_status_label = QLabel(self, objectName="alarm_time_status_label")
 
         left_grid.addWidget(self.readaloud_checkbox, 0, 0)
-        left_grid.addWidget(self.nightmode_checkbox, 1, 0)
-        left_grid.addWidget(self.alarm_brightness_checkbox, 2, 0)
+        left_grid.addWidget(self.wakeup_song_checkbox, 1, 0)
+        left_grid.addWidget(self.nightmode_checkbox, 2, 0)
 
         volume_grid = QGridLayout()
         self.volume_slider = QSlider(Qt.Horizontal, self)
@@ -384,7 +382,7 @@ class SettingsWindow(QWidget):
 
     def set_alarm_input_success_message_with_time(self, time):
         """Helper function for setting the left pane alarm time info label."""
-        msg = "Alarm set for {}".format(time)
+        msg = f"Alarm set for {time}"
         self.alarm_time_status_label.setText(msg)
 
     def set_alarm_input_time_label(self, time):

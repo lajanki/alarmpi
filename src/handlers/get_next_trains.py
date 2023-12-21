@@ -75,7 +75,7 @@ class TrainParser(apcontent.AlarmpiContent):
 
     def fetch_daily_train_data(self):
         """API call to get the next local arrivivals."""
-        URL = "https://rata.digitraffic.fi/api/v1/live-trains/station/{}".format(self.section_data["station_code"])
+        URL = f"https://rata.digitraffic.fi/api/v1/live-trains/station/{self.section_data['station_code']}"
         params = {
             "arrived_trains": 1,  # API minimum
             "arriving_trains": 20,

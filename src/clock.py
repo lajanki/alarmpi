@@ -13,13 +13,8 @@ from functools import partial
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
-from src import (
-    apconfig,
-    utils,
-    alarm_builder,
-    GUIWidgets,
-    rpi_utils
-)
+from src import apconfig, alarm_builder, GUIWidgets
+from src.utils import rpi_utils, utils, debug_write
 
 
 event_logger = logging.getLogger("eventLogger")
@@ -60,36 +55,42 @@ class Clock:
         self.alarm_timer.timeout.connect(self.play_alarm)
 
         self.alarm_build_thread = AlarmWorker(self.alarm_player, task="build")
-        self.alarm_build_thread.build_finished_signal.connect(self.finish_building_alarm)
+        self.alarm_build_thread.build_finished_signal.connect(
+            self.finish_building_alarm
+        )
 
         self.alarm_build_timer = QTimer(self.main_window)
         self.alarm_build_timer.setSingleShot(True)
         self.alarm_build_timer.timeout.connect(self.build_alarm)
 
         # ... one more worker thread for building and playing an alarm from end to end
-        self.build_and_play_thread = AlarmWorker(self.alarm_player, task="build_and_play")
-        self.build_and_play_thread.build_finished_signal.connect(self.finish_building_alarm)
-        self.build_and_play_thread.play_finished_signal.connect(self.finish_playing_alarm)
+        self.build_and_play_thread = AlarmWorker(
+            self.alarm_player, task="build_and_play"
+        )
+        self.build_and_play_thread.build_finished_signal.connect(
+            self.finish_building_alarm
+        )
+        self.build_and_play_thread.play_finished_signal.connect(
+            self.finish_playing_alarm
+        )
 
         # Set debug signal handlers for custom debug signal and keyboard event
-        signal.signal(signal.SIGUSR1, self._debug_signal_handler)
-        self.main_window.keyPressEvent = self._debug_key_press_event
+        signal.signal(signal.SIGUSR1, partial(debug_write.signal_handler, self.config))
+        self.main_window.keyPressEvent = self.key_press_event
 
         if kwargs.get("fullscreen"):
             self.main_window.showFullScreen()
 
-            # Hide mouse cursor unless in debug mode
-            if not kwargs.get("debug"):
-                self.main_window.setCursor(Qt.BlankCursor)
-                self.settings_window.setCursor(Qt.BlankCursor)
+        if rpi_utils.IS_RASPBERRY_PI:
+            self.main_window.setCursor(Qt.BlankCursor)
+            self.settings_window.setCursor(Qt.BlankCursor)
+            self.media_window.setCursor(Qt.BlankCursor)
 
         if kwargs.get("debug"):
             self.config["radio"]["enabled"] = False
 
             # Set special debug flags
-            self.config["debug"] = {
-                "DO_NOT_PLAY_ALARM": True
-            }
+            self.config["debug"] = {"DO_NOT_PLAY_ALARM": True}
 
             # Force enable brightness buttons
             self.config.rpi_brightness_write_access = True
@@ -105,18 +106,21 @@ class Clock:
         # their pollers from being garbage collected.
         if self.config["plugins"]["openweathermap.org"]["enabled"]:
             from src.plugins import weather
+
             self.weather_plugin = weather.WeatherPlugin(self)
             self.weather_plugin.create_widgets()
             self.weather_plugin.setup_polling()
 
         if self.config["plugins"]["HSL"]["enabled"]:
             from src.plugins import trains
+
             self.train_plugin = trains.TrainPlugin(self)
             self.train_plugin.create_widgets()
             self.train_plugin.setup_polling()
 
         if self.config["plugins"]["DHT22"]["enabled"]:
             from src.plugins import dht22
+
             self.dht22_plugin = dht22.DHT22Plugin(self)
             self.dht22_plugin.create_widgets()
             self.dht22_plugin.setup_polling()
@@ -124,38 +128,41 @@ class Clock:
         # Set a higher row streches to the last used row to push elements
         # closer together
         nrows = self.main_window.right_plugin_grid.rowCount()
-        self.main_window.right_plugin_grid.setRowStretch(nrows-1, 1)
+        self.main_window.right_plugin_grid.setRowStretch(nrows - 1, 1)
 
         # Setup settings window's checkbox initial values:
         tts_enabled = self.config["main"]["TTS"]
         self.settings_window.readaloud_checkbox.setChecked(tts_enabled)
 
-        nightmode = self.config["main"]["nighttime"].get("enabled", False)
-        self.settings_window.nightmode_checkbox.setChecked(nightmode)
+        nightmode_status = self.config["main"]["nighttime"].get("enabled", False)
+        self.settings_window.nightmode_checkbox.setChecked(nightmode_status)
+
+        wakeup_song_status = self.config["media"].get("enabled", False)
+        self.settings_window.wakeup_song_checkbox.setChecked(wakeup_song_status)
 
         # Store nighttime range as datetimes to config.
         start_dt = utils.time_str_to_dt(self.config["main"]["nighttime"]["start"])
         end_dt = utils.time_str_to_dt(self.config["main"]["nighttime"]["end"])
 
-        # Ensure start is before end 
+        # Ensure start is before end
         if end_dt <= start_dt:
             end_dt = end_dt + timedelta(1)
 
-        self.config["main"]["nighttime"].update({
-            "start_dt": start_dt,
-            "end_dt": end_dt
-        })
+        self.config["main"]["nighttime"].update(
+            {"start_dt": start_dt, "end_dt": end_dt}
+        )
 
         # Set a timer to update the range on next nighttime end
         self.nighttime_update_timer = QTimer(self.main_window)
         self.nighttime_update_timer.setSingleShot(True)
         self.nighttime_update_timer.timeout.connect(self._update_nighttime_range)
 
-        DELAY_UNTIL_DAYTIME = int((self.config["main"]["nighttime"]["end_dt"] - datetime.now()).total_seconds())
-        self.nighttime_update_timer.start(DELAY_UNTIL_DAYTIME*1000)
-
-        alarm_brightness_enabled = self.config["main"]["full_brightness_on_alarm"]
-        self.settings_window.alarm_brightness_checkbox.setChecked(alarm_brightness_enabled)
+        DELAY_UNTIL_DAYTIME = int(
+            (
+                self.config["main"]["nighttime"]["end_dt"] - datetime.now()
+            ).total_seconds()
+        )
+        self.nighttime_update_timer.start(DELAY_UNTIL_DAYTIME * 1000)
 
         # Set main window's alarm time display to currently active alarm time
         alarm_time = self.get_current_active_alarm()
@@ -164,7 +171,9 @@ class Clock:
 
         self.screen_blank_timer = QTimer(self.main_window)
         self.screen_blank_timer.setSingleShot(True)
-        self.screen_blank_timer.timeout.connect(self.blank_screen_and_hide_control_buttons)
+        self.screen_blank_timer.timeout.connect(
+            self.blank_screen_and_hide_control_buttons
+        )
 
         self.main_window.mouseReleaseEvent = self.on_release_event_handler
 
@@ -194,7 +203,9 @@ class Clock:
         # Disable backlight manipulation buttons if the underlying system
         # files dont't exists (ie. not a Raspberry Pi) or no write access to them.
         if not self.config.rpi_brightness_write_access:
-            event_logger.info("System doesn't appear to be a Raspberry Pi, disabling brightness buttons.")
+            event_logger.info(
+                "System doesn't appear to be a Raspberry Pi, disabling brightness buttons."
+            )
 
             self.blank_button.setEnabled(False)
             brightness_button.setEnabled(False)
@@ -214,7 +225,9 @@ class Clock:
         # ** settings window buttons **
         # Set brightness toggle button with a low brightness value read from the config file
         low_brightness = self.config["main"].get("low_brightness", 12)
-        brightness_toggle_slot = partial(rpi_utils.toggle_display_backlight_brightness, low_brightness=low_brightness)
+        brightness_toggle_slot = partial(
+            rpi_utils.toggle_display_backlight_brightness, low_brightness=low_brightness
+        )
         brightness_button.clicked.connect(brightness_toggle_slot)
 
         self.alarm_play_button.clicked.connect(self.build_and_play_alarm)
@@ -225,13 +238,19 @@ class Clock:
 
         # Settings window checkbox callbacks
         self.settings_window.readaloud_checkbox.stateChanged.connect(
-            lambda state: self.config.config["main"].update({"TTS": state == Qt.CheckState.Checked})
+            lambda state: self.config.config["main"].update(
+                {"TTS": state == Qt.CheckState.Checked}
+            )
         )
         self.settings_window.nightmode_checkbox.stateChanged.connect(
-            lambda state: self.config.config["main"]["nighttime"].update({"enabled": state == Qt.CheckState.Checked})
+            lambda state: self.config.config["main"]["nighttime"].update(
+                {"enabled": state == Qt.CheckState.Checked}
+            )
         )
-        self.settings_window.alarm_brightness_checkbox.stateChanged.connect(
-            lambda state: self.config.config["main"].update({"full_brightness_on_alarm": state == Qt.CheckState.Checked})
+        self.settings_window.wakeup_song_checkbox.stateChanged.connect(
+            lambda state: self.config.config["media"].update(
+                {"enabled": state == Qt.CheckState.Checked}
+            )
         )
 
         self.settings_window.volume_slider.valueChanged.connect(self.set_volume)
@@ -243,8 +262,12 @@ class Clock:
             self.settings_window.volume_slider.setValue(volume_level)
         except AttributeError as e:
             self.settings_window.volume_slider.setEnabled(False)
-            self.set_volume(0) # Sets icon to muted (as well as attempting to set PCM control to selected card)
-            event_logger.warning("Couldn't get volume level. Wrong card value in configuration? Disabling volume slider.")
+            self.set_volume(
+                0
+            )  # Sets icon to muted (as well as attempting to set PCM control to selected card)
+            event_logger.warning(
+                "Couldn't get volume level. Wrong card value in configuration? Disabling volume slider."
+            )
 
     def open_settings_window(self):
         """Button callback - settings window. Open the settings window and
@@ -276,7 +299,7 @@ class Clock:
         # Set screen blanking timeout if the screen was blank before the event
         # and it is currently nightime.
         if self._nightmode_active() and old_screen_state == "off":
-            self.screen_blank_timer.start(3*1000)  # 3 second timer
+            self.screen_blank_timer.start(3 * 1000)  # 3 second timer
             event_logger.info("Screen blank timer activated")
 
     def set_alarm(self):
@@ -301,10 +324,14 @@ class Clock:
 
             # Setup alarm build time for 5 minutes earlier (given large enough timer)
             ALARM_BUILD_DELTA = 5 * 60 * 1000
-            alarm_build_wait_ms = max((0, alarm_wait_ms - ALARM_BUILD_DELTA))  # 0 if not enough time
+            alarm_build_wait_ms = max(
+                (0, alarm_wait_ms - ALARM_BUILD_DELTA)
+            )  # 0 if not enough time
 
             alarm_build_dt = self.alarm_dt - timedelta(minutes=5)
-            event_logger.info("Setting alarm build for %s", alarm_build_dt.strftime("%H:%M"))
+            event_logger.info(
+                "Setting alarm build for %s", alarm_build_dt.strftime("%H:%M")
+            )
             self.alarm_build_timer.start(alarm_build_wait_ms)
 
             # Set screen brightness to low if nighttime and nigthmode enabled
@@ -341,7 +368,9 @@ class Clock:
         # If no stream url was passed, use currently active station from settings window
         # QComboBox
         if url is None:
-            current_radio_station = self.settings_window.radio_station_combo_box.currentText()
+            current_radio_station = (
+                self.settings_window.radio_station_combo_box.currentText()
+            )
             url = self.radio_streams[current_radio_station]
 
         else:
@@ -382,7 +411,7 @@ class Clock:
         and, if enabled, starts a separated cvlc process for the radio stream.
         """
         self.alarm_play_button.setEnabled(True)
-        
+
         if self.config["radio"]["enabled"]:
             # Toggle the radio button and pass the default stream
             # the radio player.
@@ -465,7 +494,9 @@ class Clock:
         """Slider callback - set system volume level to match volume slider lever and
         update volume level icon.
         """
-        utils.set_volume(self.config["alsa"]["card"], value) # Sets the actual volume level
+        utils.set_volume(
+            self.config["alsa"]["card"], value
+        )  # Sets the actual volume level
 
         if value == 0:
             mode = "muted"
@@ -475,7 +506,7 @@ class Clock:
             mode = "medium"
         else:
             mode = "high"
-        
+
         icon = utils.get_volume_icon(mode)
         self.settings_window.volume_label.setPixmap(icon)
 
@@ -518,38 +549,18 @@ class Clock:
         self.config["main"]["nighttime"]["start_dt"] = updated_start
         self.config["main"]["nighttime"]["end_dt"] = updated_end
 
-        event_logger.info("Next nighttime range set to %s => %s", updated_start, updated_end)
+        event_logger.info(
+            "Next nighttime range set to %s => %s", updated_start, updated_end
+        )
 
         # Reset the update timer to next nighttime end
         DELAY_UNTIL_DAYTIME = int((updated_end - datetime.now()).total_seconds())
-        self.nighttime_update_timer.start(DELAY_UNTIL_DAYTIME*1000)
+        self.nighttime_update_timer.start(DELAY_UNTIL_DAYTIME * 1000)
 
-    def _debug_signal_handler(self, sig, frame):
-        """Dump current state to file."""
-        OUTPUT_FILE = "debug_info.txt"
-        app = QApplication.instance()
-
-        with open(OUTPUT_FILE, "w") as f:
-            f.write("config file: {}\n".format(self.config.config_file))
-            json.dump(self.config.config, f, indent=4, cls=utils.DateTimeEncoder)
-
-            f.write("\n{:15} {:9} {:12} {:14} {:11}".format("window", "isVisible", "isFullScreen", "isActiveWindow", "isEnabled"))
-            #for window in (self.main_window, self.settings_window):
-            for window in app.topLevelWidgets():
-                f.write("\n{:15} {:9} {:12} {:14} {:11}".format(
-                    window.__class__.__name__,
-                    window.isVisible(),
-                    window.isFullScreen(),
-                    window.isActiveWindow(),
-                    window.isEnabled()
-                ))
-
-        event_logger.info("Debug status written to %s", OUTPUT_FILE)      
-
-    def _debug_key_press_event(self, event):
-        """Keyboard event handler, run the debug signal handler when F2 is pressed."""
+    def key_press_event(self, event):
+        """Custom keyboard event handler: run the debug signal handler when F2 is pressed."""
         if event.key() == Qt.Key_F2:
-            self._debug_signal_handler(None, None)
+            debug_write.signal_handler(self.config)
 
 
 class AlarmWorker(QThread):
@@ -584,7 +595,9 @@ class AlarmWorker(QThread):
         elif self.task == "build_and_play":
             # Temporarily overwrite alarm_time in config to pass correct value to the greeting
             old = self.alarm_builder.config["main"]["alarm_time"]
-            self.alarm_builder.config["main"]["alarm_time"] = datetime.now().strftime("%H:%M")
+            self.alarm_builder.config["main"]["alarm_time"] = datetime.now().strftime(
+                "%H:%M"
+            )
             self._build()
             self.alarm_builder.config["main"]["alarm_time"] = old
 
@@ -595,6 +608,7 @@ class AlarmWorker(QThread):
 
 class RadioStreamer:
     """Helper class for playing a radio stream via cvlc."""
+
     def __init__(self, config):
         self.process = None
         self.config = config
@@ -608,14 +622,16 @@ class RadioStreamer:
         in the background.
         """
         args = self.config.get("args", "")
-        cmd = "/usr/bin/cvlc {} {}".format(url, args)
+        cmd = f"/usr/bin/cvlc {url} {args}"
         event_logger.info("Running %s", cmd)
 
         # Run the command via Popen directly to open the stream as an independent child
         # process. This way we do not wait for the stream to finish.
         # Output is captured (truncated) to file.
         with open("logs/radio.log", "w") as f:
-            self.process = subprocess.Popen(cmd.split(), stdout=f, stderr=subprocess.STDOUT)
+            self.process = subprocess.Popen(
+                cmd.split(), stdout=f, stderr=subprocess.STDOUT
+            )
 
     def stop(self):
         """Terminate the running cvlc process."""

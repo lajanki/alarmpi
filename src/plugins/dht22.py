@@ -34,5 +34,5 @@ class DHT22Plugin:
             self.dht22_label.setText("ERR")
 
         elif temperature:
-            msg = "⌂ {}°C".format(round(temperature))
+            msg = f"⌂ {round(temperature)}°C"
             self.dht22_label.setText(msg)

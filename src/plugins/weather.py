@@ -53,10 +53,10 @@ class WeatherPlugin(applugin.AlarmpiPlugin):
         temperature = weather["temp"]
         wind = weather["wind_speed_ms"]
 
-        msg = "{}°C".format(round(temperature))
+        msg = f"{round(temperature)}°C"
         self.temperature_label.setText(msg)
 
-        msg = "{}m/s".format(round(wind))
+        msg = f"{round(wind)}m/s"
         self.wind_label.setText(msg)
 
         # Weather icon is fetched via a separate API call which
