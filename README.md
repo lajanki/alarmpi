@@ -47,7 +47,7 @@ This is a fork of https://github.com/skiwithpete/alarmpi. After seeing it on [Yo
 ## Hardware setup
 This project is built around the following hardware.
  * Raspberry Pi
- * Official Raspberry Pi Display
+ * [Official Raspberry Pi Touch Display](https://www.raspberrypi.com/products/raspberry-pi-touch-display/)
  * A speaker
  * A DHT22 temperature and humidity sensor (optional)
 
@@ -86,7 +86,8 @@ pip install PyQt5==5.15.10 --config-settings --confirm-license= --verbose
 ```
 and then continue with the rest of the requirements as above.
 
-Note that on an older Raspberry Pi model compiling from source can take a couple of hours.
+> [!IMPORTANT]
+> On an older Raspberry Pi model compiling from source can take a couple of hours.
 
 
 ## Usage
@@ -94,11 +95,11 @@ Run the script either with
 ```bash
 python main.py [configuration_file]
 ```
-where `[configuration_file]` is a path to an optional alarm configuration file, eg.
+where `[configuration_file]` is a path to a custom alarm configuration file, eg.
 ```bash
 python main.py ~/alarm_config.yaml
 ```
-If no argument is used, `./configs/default.yaml` will be used.
+If no argument is used the default configuration in, [./configs/default.yaml](./configs/default.yaml) will be used.
 
 
 This opens a digital clock interface with current time as well a settings window for setting the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
