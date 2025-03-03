@@ -35,7 +35,7 @@ TTS:
     enabled: false
     handler: get_gcp_tts.py
     auth:
-      service_account: service_account_email  # Service account email to authenticate to GCP
+      service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com  # Service account email to authenticate to GCP
 
   google_translate:
     enabled: true
