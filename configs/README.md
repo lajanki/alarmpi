@@ -41,9 +41,10 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 Define which TTS engine to use. Supported engines are:  
 
  1. **GCP**
-    * Google Cloud Text-to-Speech. This provides the most human-like speech, but requires a Google Cloud project with billing enabled and a service account. 
-      * Quickstart: https://cloud.google.com/text-to-speech/docs/before-you-begin.
-    * Service account impersonation is used to authenticate as the service account. This avoids having to download a long lived service account key, but does require the _Service Account Token Creator_ IAM role on the service account.
+    * Google Cloud Text-to-Speech. This provides the most human-like speech, but requires a Google Cloud project with billing enabled.
+    * Service account impersonation is used to authenticate as the service account. This avoids having to download a long lived service account key,
+        but does require an active `gcloud` user level credentials to initiate the impersonation. 
+      * Additionally, requires the _Service Account Token Creator_ IAM role on the service account.
       * https://cloud.google.com/docs/authentication/use-service-account-impersonation
     * **Using this option may incur costs**
       * A single run of the alarm generates about 1100 characters of text. The alarm uses _WaveNet_ speech synthesis which has a free tier of 1 million characters per month
@@ -56,7 +57,7 @@ Define which TTS engine to use. Supported engines are:
     * Enabled by default
 
  1. **festival**
-    * Festival is a general purpose TTS system. Does not require an internet access and provides by far the most robotic voice.
+    * Festival is a general purpose TTS system. Does not require an internet access and provides the most robotic voice.
     * Used as a fallback when TTS is enabled but no engine is explicitly specified.
     * https://www.cstr.ed.ac.uk/projects/festival/
 
