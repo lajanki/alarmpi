@@ -2,7 +2,7 @@ import logging
 
 import feedparser
 
-from src import apcontent
+from alarmpi.core import apcontent
 
 
 event_logger = logging.getLogger("eventLogger")

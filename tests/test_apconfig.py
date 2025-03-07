@@ -3,7 +3,7 @@ import os.path
 
 from unittest.mock import patch
 
-from src import apconfig
+from alarmpi.core import apconfig
 
 
 

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from freezegun import freeze_time
 
-from src import clock, apconfig, alarm_builder
+from alarmpi.core import clock, apconfig, alarm_builder
 
 
 
@@ -34,7 +34,7 @@ def dummy_clock():
 class TestClock():
     """Test cases for logic functions for determining alarm time in Clock."""
 
-    @patch("src.GUIWidgets.SettingsWindow.validate_alarm_input")
+    @patch("alarmpi.core.GUIWidgets.SettingsWindow.validate_alarm_input")
     @patch("PyQt5.QtWidgets.QLCDNumber.display")
     def test_set_alarm_updates_screen_and_sets_timers(self, mock_display, mock_validate_alarm_input, dummy_clock):
         """Does 'Set alarm' button start timers for alarm build and play and update
@@ -70,7 +70,7 @@ class TestClock():
         assert settings_window_value == "Alarm cleared"
 
     @patch("PyQt5.QtWidgets.QLCDNumber.display")
-    @patch("src.utils.rpi_utils.set_display_backlight_brightness")
+    @patch("alarmpi.utils.rpi_utils.set_display_backlight_brightness")
     def test_play_alarm_starts_alarm_play_thread(self, mock_set_display_backlight_brightness, mock_display, dummy_clock):
         """Does the timer slot function for playing the alarm set window brightness,
         clearn main window label and start the alarm play thread?
@@ -83,7 +83,7 @@ class TestClock():
         mock_set_display_backlight_brightness.assert_called_with(255)
         dummy_clock.alarm_play_thread.start.assert_called()
 
-    @patch("src.clock.Clock.play_radio")
+    @patch("alarmpi.core.clock.Clock.play_radio")
     def test_finish_playing_alarm_starts_radio_if_enabled(self, mock_play_radio, dummy_clock):
         """Does the alarm finish callback call the radio thread when radio is enabled?"""
         dummy_clock.config["radio"]["enabled"] = True
@@ -119,8 +119,8 @@ class TestClock():
         label_time = dummy_clock.settings_window.input_alarm_time_label.text()
         assert label_time == "07:16"
 
-    @patch("src.utils.rpi_utils.set_display_backlight_brightness")
-    @patch("src.utils.rpi_utils._get_value")
+    @patch("alarmpi.utils.rpi_utils.set_display_backlight_brightness")
+    @patch("alarmpi.utils.rpi_utils._get_value")
     def test_brightness_toggle(self, mock_get_value, mock_set_brightness, dummy_clock):
         """Does the backlight toggle change brightness from low to high?"""
         mock_get_value.return_value = 12
@@ -181,7 +181,7 @@ class TestClock():
             dummy_clock.config["main"]["nighttime"]["start_dt"] == datetime(2021, 7, 31, 22, 0)
             dummy_clock.config["main"]["nighttime"]["end_dt"] == datetime(2021, 8, 1, 7, 0)
 
-    @patch("src.alarm_builder.subprocess.run")
+    @patch("alarmpi.core.alarm_builder.subprocess.run")
     def test_wakeup_song_window(mock_subprocess_run, dummy_clock):
         """Is the media play window displayed when slot function called
         and closed on button press?
@@ -204,7 +204,7 @@ class TestClock():
 class TestAlarmWorker():
 
     @freeze_time("2021-07-30 21:03")
-    @patch("src.clock.AlarmWorker._play")
+    @patch("alarmpi.core.clock.AlarmWorker._play")
     def test_build_and_play_alarm_time_override(self, mock_play, capsys):
         """Does build_and_play task type temporarily override alarm_time in config
         with current time?

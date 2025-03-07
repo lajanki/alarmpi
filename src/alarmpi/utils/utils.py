@@ -11,8 +11,6 @@ from PyQt5.QtGui import QPixmap
 BASE = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
-
-
 def time_str_to_dt(s):
     """Convert a time string in HH:MM format to a datetime object.
     By default the date is set to current date.

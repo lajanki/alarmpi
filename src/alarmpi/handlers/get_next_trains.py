@@ -9,7 +9,7 @@ import logging
 import requests
 from dateutil import tz
 
-from src import apcontent
+from alarmpi.core import apcontent
 
 
 event_logger = logging.getLogger("eventLogger")

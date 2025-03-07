@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Entrypoint for the project, runs the clock GUI. The GUI can be used to
 # schedule an alarm. To run the alarm directly, run alarm_builder.py.
@@ -11,7 +10,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from src import clock
+from alarmpi.core import clock
 
 
 logging.config.fileConfig("logging.conf")
@@ -20,7 +19,7 @@ event_logger = logging.getLogger("eventLogger")
 
 def backlight_excepthook(type, value, tb):
     """Custom exception handler for uncaught exceptions.
-    From the docs (https://docs.python.org/3.7/library/sys.html#sys.excepthook):
+    From the docs (https://docs.python.org/3/library/sys.html#sys.excepthook):
         When an exception is raised and uncaught, the interpreter calls sys.excepthook with three arguments,
         the exception class, exception instance, and a traceback object. In an interactive session this happens
         just before control is returned to the prompt; in a Python program this happens just before the program

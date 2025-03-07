@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPixmap
 
-from src.handlers import get_weather
-from src import applugin
+from alarmpi.handlers import get_weather
+from alarmpi.core import applugin
 
 
 class WeatherPlugin(applugin.AlarmpiPlugin):

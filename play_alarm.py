@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 
 # Generates an alarm based on a configuration file and plays it. This module acts as
 # the entry point to the actual alarm, and will be scheduled via cron.
@@ -10,8 +8,8 @@
 
 import argparse
 
-from src import alarm_builder
-from src import apconfig
+from alarmpi.core import alarm_builder
+from alarmpi.core import apconfig
 
 
 if __name__ == "__main__":

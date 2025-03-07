@@ -1,7 +1,7 @@
 import requests
 from unittest.mock import patch, mock_open
 
-from src.handlers import get_weather, get_next_trains
+from alarmpi.handlers import get_weather, get_next_trains
 
 
 

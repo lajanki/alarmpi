@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 )
 from pyqtspinner import WaitingSpinner
 
-from src.utils import utils
+from alarmpi.utils import utils
 
 
 # Create namedtuples for storing button and label configurations

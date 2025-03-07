@@ -2,7 +2,7 @@
 
 from google.cloud import texttospeech
 
-from src import alarm_builder, alarmenv
+from alarmpi.core import alarm_builder, alarmenv
 
 
 client = texttospeech.TextToSpeechClient()

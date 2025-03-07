@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 import yaml
-from src.utils import rpi_utils
+from alarmpi.utils import rpi_utils
 
 
 logger = logging.getLogger("eventLogger")

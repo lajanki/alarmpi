@@ -3,7 +3,7 @@ import logging
 import board
 import adafruit_dht
 
-from src import apcontent
+from alarmpi.core import apcontent
 
 
 # Use pluginLogger to send (frequent) error events to separate file in order to keep
