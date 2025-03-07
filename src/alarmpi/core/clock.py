@@ -28,7 +28,7 @@ class Clock:
             config_file (str): path of the configuration file to use.
             kwargs: additional command line parameters passed via main.py
         """
-        # Read the alarm configuration file and initialize and alarmenv object
+        # Read the alarm configuration file and initialize an AlarmBuilder object
         self.config = apconfig.AlarmConfig(config_file)
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
 
