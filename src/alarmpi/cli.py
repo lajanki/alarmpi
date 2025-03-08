@@ -40,7 +40,7 @@ def backlight_excepthook(type, value, tb):
     subprocess.run("./stop.sh")
 
 
-if __name__ == "__main__":
+def run():
     sys.excepthook = backlight_excepthook
 
     parser = argparse.ArgumentParser(description="Run alarmpi GUI")
