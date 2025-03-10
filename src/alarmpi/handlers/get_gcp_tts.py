@@ -6,7 +6,7 @@ from google.cloud import texttospeech
 from google.auth import impersonated_credentials
 import google.auth.transport.requests
 
-from src import aptts
+from alarmpi.core import aptts
 
 
 event_logger = logging.getLogger("eventLogger")

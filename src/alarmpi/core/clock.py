@@ -1,9 +1,6 @@
-#!/usr/bin/python3
-
 # A PyQt5 clock radio application.
 # Main logic for connecting UI elements and control flow.
 
-import json
 import logging
 import signal
 import subprocess
@@ -13,8 +10,8 @@ from functools import partial
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
-from src import apconfig, alarm_builder, GUIWidgets
-from src.utils import rpi_utils, utils, debug_write
+from alarmpi.core import apconfig, alarm_builder, GUIWidgets
+from alarmpi.utils import rpi_utils, utils, debug_write
 
 
 event_logger = logging.getLogger("eventLogger")
@@ -31,7 +28,7 @@ class Clock:
             config_file (str): path of the configuration file to use.
             kwargs: additional command line parameters passed via main.py
         """
-        # Read the alarm configuration file and initialize and alarmenv object
+        # Read the alarm configuration file and initialize an AlarmBuilder object
         self.config = apconfig.AlarmConfig(config_file)
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
 
@@ -105,21 +102,21 @@ class Clock:
         # Note: plugins defined as instance variables to prevent
         # their pollers from being garbage collected.
         if self.config["plugins"]["openweathermap.org"]["enabled"]:
-            from src.plugins import weather
+            from alarmpi.plugins import weather
 
             self.weather_plugin = weather.WeatherPlugin(self)
             self.weather_plugin.create_widgets()
             self.weather_plugin.setup_polling()
 
         if self.config["plugins"]["HSL"]["enabled"]:
-            from src.plugins import trains
+            from alarmpi.plugins import trains
 
             self.train_plugin = trains.TrainPlugin(self)
             self.train_plugin.create_widgets()
             self.train_plugin.setup_polling()
 
         if self.config["plugins"]["DHT22"]["enabled"]:
-            from src.plugins import dht22
+            from alarmpi.plugins import dht22
 
             self.dht22_plugin = dht22.DHT22Plugin(self)
             self.dht22_plugin.create_widgets()

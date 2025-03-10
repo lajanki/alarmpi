@@ -11,8 +11,8 @@ import pydub
 import pydub.playback
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from src.utils import utils
-from src.handlers import get_festival_tts, get_greeting
+from alarmpi.utils import utils
+from alarmpi.handlers import get_festival_tts, get_greeting
 
 
 event_logger = logging.getLogger("eventLogger")
@@ -139,7 +139,7 @@ class AlarmBuilder:
         """Given config file section name, return the class matching the handler."""
         # use importlib to dynamically import the correct module within
         # the 'handlers' package.
-        path_to_module = f"src.handlers.{section['handler'][:-3]}"
+        path_to_module = f"alarmpi.handlers.{section['handler'][:-3]}"
         handler_module = importlib.import_module(path_to_module)
 
         # Inspect the handler module for classes and return the first class.

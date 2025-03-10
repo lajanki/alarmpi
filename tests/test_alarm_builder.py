@@ -5,8 +5,8 @@ from unittest.mock import patch, Mock
 
 from freezegun import freeze_time
 
-from src import apconfig, alarm_builder
-from src.handlers import (
+from alarmpi.core import apconfig, alarm_builder
+from alarmpi.handlers import (
     get_google_translate_tts,
     get_festival_tts,
     get_bbc_news,
@@ -56,7 +56,7 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
         created_class = dummy_alarm_builder.get_content_parser_class({"handler": module})
         assert created_class == class_
 
-@patch("src.alarm_builder.AlarmBuilder.play_beep")
+@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_tts_fails(mock_play_beep, dummy_alarm_builder):
     """Is the beep played when a network error occurs?"""
     dummy_alarm_builder.tts_client = Mock()
@@ -66,7 +66,7 @@ def test_beep_played_when_tts_fails(mock_play_beep, dummy_alarm_builder):
     dummy_alarm_builder.play()
     mock_play_beep.assert_called()
 
-@patch("src.alarm_builder.AlarmBuilder.play_beep")
+@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_tts_disabled(mock_play_beep, dummy_alarm_builder):
     """Is the beep played when TTS is disabled in the configuration?"""
     dummy_alarm_builder.config["main"]["TTS"] = False
@@ -85,7 +85,7 @@ def test_alarm_time_without_override(dummy_alarm_builder):
     greeting = dummy_alarm_builder.generate_greeting()
     assert "the time is 07:02" in greeting.lower()
 
-@patch("src.alarm_builder.MediaPlayWorker")
+@patch("alarmpi.core.alarm_builder.MediaPlayWorker")
 def test_wakeup_song_played(mock_media_play_worker):
     """Is the wakeup song thread started as part of the alarm when enabled?"""
 

@@ -65,11 +65,16 @@ sudo apt install qtbase5-dev ffmpeg festival vlc gpiod
 ```
 These include the Qt5 development package, Festival text-to-speech engine and vlc media player.
 
-Next, install Python packages with  
+Next, install Python packages. The preferred method is with `uv`:
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
-Using a virtual environment is recommended
+
+Alternatively, if `uv` is not installed, use `pip`
+```bash
+pip install -e .
+```
+But note that this will use mostly unpinned versions of the dependencies and may introduce dependency conflicts or incompatibilities.
 
 Interacting with the Raspberry Pi's screen brightness is done via two system owned by the root user. The following udev rule will make them writable by all users (adapted from https://github.com/linusg/rpi-backlight).
 
@@ -93,11 +98,11 @@ and then continue with the rest of the requirements as above.
 ## Usage
 Run the script either with
 ```bash
-python main.py [configuration_file]
+uv run alarmpi [configuration_file]
 ```
 where `[configuration_file]` is a path to a custom alarm configuration file, eg.
 ```bash
-python main.py ~/alarm_config.yaml
+uv run alarmpi ~/alarm_config.yaml
 ```
 If no argument is used the default configuration in, [./configs/default.yaml](./configs/default.yaml) will be used.
 
@@ -112,18 +117,18 @@ The optional configuration file can be used to customize the alarm as well as ad
 
 You can also run a purely CLI version of the alarm with
 ```bash
-python play_alarm.py [configuration_file]
+uv run tools/play_alarm.py [configuration_file]
 ```
 You can use cron to manually schedule an alarm.
 
 ### Note about locales
 While the TTS alarm is played in English, weekday and month names will be generated according to the runtime environment's current locale. If necessary, the relevant locale setting can be set to English with something like:
 ```bash
-LC_TIME=en_GB.utf8 python main.py wakeup.yaml
+LC_TIME=en_GB.utf8 uv run alarmpi
 ```
 
 ## Unit tests
 Unit tests can be run from the root folder with
 ```bash
-pytest
+uv run pytest
 ```

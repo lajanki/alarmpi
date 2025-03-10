@@ -2,8 +2,8 @@ from functools import partial
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import QTimer
 
-from src.handlers import get_next_trains
-from src import applugin
+from alarmpi.handlers import get_next_trains
+from alarmpi.core import applugin
 
 
 class TrainPlugin(applugin.AlarmpiPlugin):

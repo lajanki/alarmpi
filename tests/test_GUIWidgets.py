@@ -1,7 +1,7 @@
 import os.path
 import pytest
 
-from src import apconfig, GUIWidgets
+from alarmpi.core import apconfig, GUIWidgets
 
 
 @pytest.fixture

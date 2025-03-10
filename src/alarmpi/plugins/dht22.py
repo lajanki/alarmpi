@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import QTimer, Qt
 
-from src.handlers import get_dht22_readings
+from alarmpi.handlers import get_dht22_readings
 
 
 class DHT22Plugin:

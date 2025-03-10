@@ -96,7 +96,7 @@ Extending the alarm with you're own content is simple:
 
  1. Create a handler for your new content and place it in the `src/handlers/` folder. It should subclass `apcontent.AlarmpiContent` and implement the `build` method. This function is where the magic happens: it should store whatever string content to pass to the alarm as the `content` attribute. A minimal handler implementation is something like:
  ```python
- from src import apcontent
+ from alarmpi.core import apcontent
 
  class Handler(apcontent.AlarmpiContent):
 
@@ -112,7 +112,7 @@ Extending the alarm with you're own content is simple:
 
 Adding a new TTS engine can be done similarly:
 
- 1. Write the handler. It should should inherit from `src.aptts.AlarmpiTTS` and implement the `play` method.
+ 1. Write the handler. It should should inherit from `alarmpi.aptts.AlarmpiTTS` and implement the `play` method.
 
  2. Add configuration section and enable it.
 

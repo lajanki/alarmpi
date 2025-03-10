@@ -2,7 +2,7 @@ from datetime import datetime
 
 import num2words
 
-from src import apcontent
+from alarmpi.core import apcontent
 
 
 class Greeting(apcontent.AlarmpiContent):
