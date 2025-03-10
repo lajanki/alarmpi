@@ -2,6 +2,6 @@
 venv/
 .vscode/
 *.mp3
+*.log
 logs/*.log
-test_gcp_text_to_speech.py
 debug_info.txt

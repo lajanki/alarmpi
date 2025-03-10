@@ -1,10 +1,15 @@
 import io
+import logging
 
 import pydub
 from google.cloud import texttospeech
-from google.oauth2 import service_account
+from google.auth import impersonated_credentials
+import google.auth.transport.requests
 
 from src import aptts
+
+
+event_logger = logging.getLogger("eventLogger")
 
 
 class GoogleCloudTTS(aptts.AlarmpiTTS):
@@ -17,16 +22,15 @@ class GoogleCloudTTS(aptts.AlarmpiTTS):
     https://cloud.google.com/text-to-speech/pricing
     """
 
-    def __init__(self, credentials):
+    def __init__(self, auth):
         super().__init__()
-        self.credentials = credentials
+        self.auth = auth
         self.client = self.get_client()
 
     def get_client(self):
-        """Create an API client using a path to a service account key_file."""
-        credentials = service_account.Credentials.from_service_account_file(self.credentials)
-        client = texttospeech.TextToSpeechClient(credentials=credentials)
-
+        """Create an API client using the impersonated service account credentials."""
+        self.credentials = fetch_service_account_access_token(self.auth["service_account"])
+        client = texttospeech.TextToSpeechClient(credentials=self.credentials)
         return client
 
     def setup(self, text):
@@ -52,3 +56,33 @@ class GoogleCloudTTS(aptts.AlarmpiTTS):
         f = io.BytesIO(response.audio_content)
         return pydub.AudioSegment.from_file(f, format="mp3")
 
+
+def fetch_service_account_access_token(
+    impersonated_service_account: str
+):
+    """
+    Fetch short lived impersonation credentials for a service account.
+    This requires the 
+      "roles/iam.serviceAccountTokenCreator" permission on the target service account.
+
+    Args:
+        impersonated_service_account: The name of the privilege-bearing service account for whom the credential is created.
+    """
+
+    # Get current caller identity.
+    credentials, project_id = google.auth.default()
+
+    # Create the impersonated credential.
+    event_logger.info("Fetching credentials for %s", impersonated_service_account)
+    target_credentials = impersonated_credentials.Credentials(
+        source_credentials=credentials,
+        target_principal=impersonated_service_account,
+        target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        lifetime=600,
+    )
+
+    # Get the OAuth2 token.
+    request = google.auth.transport.requests.Request()
+    target_credentials.refresh(request)
+
+    return target_credentials

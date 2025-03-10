@@ -78,7 +78,7 @@ class AlarmConfig:
                 if self["TTS"][item]["enabled"]
             ]
         )
-        assert n_tts_enabled <= 1, "Multiple TTS enabled engines not allowed"
+        assert n_tts_enabled <= 1, "Multiple enabled TTS engines detected"
 
         brightness = self["main"]["low_brightness"]
         assert (
@@ -87,7 +87,7 @@ class AlarmConfig:
 
         default = self["radio"]["default"]
         assert default in self["radio"]["urls"], (
-            "No stream url for defult radio station" + default
+            "No stream url for default radio station" + default
         )
 
         try:
