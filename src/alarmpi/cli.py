@@ -48,6 +48,8 @@ def run():
                         default="configs/default.yaml", help="Configuration file to use. Defaults to configs/default.yaml")
     parser.add_argument("--fullscreen", action="store_true",
                         help="fullscreen mode")
+    parser.add_argument("--no-mouse-cursor", action="store_true",
+                        help="disable mouse cursor")
     parser.add_argument("--debug", action="store_true",
                         help="debug mode")
     args = parser.parse_args()

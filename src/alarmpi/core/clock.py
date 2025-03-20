@@ -78,7 +78,7 @@ class Clock:
         if kwargs.get("fullscreen"):
             self.main_window.showFullScreen()
 
-        if rpi_utils.IS_RASPBERRY_PI:
+        if kwargs.get("no_mouse_cursor"):
             self.main_window.setCursor(Qt.BlankCursor)
             self.settings_window.setCursor(Qt.BlankCursor)
             self.media_window.setCursor(Qt.BlankCursor)
@@ -201,7 +201,8 @@ class Clock:
         # files dont't exists (ie. not a Raspberry Pi) or no write access to them.
         if not self.config.rpi_brightness_write_access:
             event_logger.info(
-                "System doesn't appear to be a Raspberry Pi, disabling brightness buttons."
+                "Backlight brightness file %s not writable or does not exist. Disabling backlight control buttons.",
+                rpi_utils.BRIGHTNESS_FILE
             )
 
             self.blank_button.setEnabled(False)
