@@ -39,9 +39,9 @@ This is a fork of https://github.com/skiwithpete/alarmpi. After seeing it on [Yo
  * Plays internet radio streams
  
 
-![Main window](resources/clock_main.png)
+![Main window](docs/clock_main.png)
 
-![Settings window](resources/clock_settings.png)
+![Settings window](docs/clock_settings.png)
 
 
 ## Hardware setup

@@ -2,12 +2,14 @@ import os.path
 import re
 import subprocess
 from datetime import datetime, date
+from importlib.resources import files
 
 from mutagen.id3 import ID3, ID3NoHeaderError
 from PyQt5.QtGui import QPixmap
 
 
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+# Access "resources" folder within the package
+PATH_TO_RESOURCES = files("alarmpi.resources")
 
 
 def time_str_to_dt(s):
@@ -63,7 +65,7 @@ def get_volume_icon(mode):
         return QPixmap(img_map[mode])
 
     else:
-        original = QPixmap(os.path.join(BASE, "resources", "icons", "volume_640.png"))
+        original = QPixmap(str(PATH_TO_RESOURCES / "icons" / "volume_640.png"))
         Y = 70
         HEIGHT = 212
 

@@ -161,7 +161,7 @@ class AlarmBuilder:
     @staticmethod
     def play_beep():
         """Play a beeping sound effect."""
-        path = os.path.join(utils.BASE, "resources", "Cool-alarm-tone-notification-sound.mp3")
+        path = str(utils.PATH_TO_RESOURCES / "Cool-alarm-tone-notification-sound.mp3")
         beep = pydub.AudioSegment.from_mp3(path)
         pydub.playback.play(beep)
 
