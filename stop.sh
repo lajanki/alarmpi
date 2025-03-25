@@ -1,15 +1,16 @@
 #!/bin/bash
 
-PATTERN="python .*(alarmpi/)?main.py"
+# Get the process ID of the running alarmpi process
+pid=$(pgrep -f "bin/alarmpi")
 
-# Send a debug signal to the main script
-pgrep -f "$PATTERN" && kill -s USR1 $(pgrep -f "$PATTERN")
+# Send a debug signal
+kill -s USR1 $pid
 
 
-# kill any running alarms
+# stop any running alarms
 pkill cvlc
 pkill -f "play_alarm.py"
-pkill -f "$PATTERN"
+kill $pid
 
 # Ensure backlight is turned on (only on Raspberry Pi)
 if [[ -d "/sys/class/backlight/rpi_backlight" ]]; then

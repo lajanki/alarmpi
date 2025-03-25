@@ -122,7 +122,7 @@ class AlarmWindow(QWidget):
 
             if config.icon:
                 button.setIcon(
-                    QIcon(os.path.join(utils.BASE, "resources", "icons", config.icon))
+                    QIcon(str(utils.PATH_TO_RESOURCES / "icons" / config.icon))
                 )
                 button.setIconSize(QSize(28, 28))
 
@@ -180,7 +180,8 @@ class AlarmWindow(QWidget):
         self.move(qr.topLeft())
 
     def _show_radio_play_indicator(self, station_name):
-        html = f"<html><img src='resources/icons/radio64x64.png' height='28'><span style='font-size:14px'> {station_name}</span></html>"
+        path_to_icon = str(utils.PATH_TO_RESOURCES / "icons" / "radio64x64.png")
+        html = f"<html><img src='{path_to_icon}' height='28'><span style='font-size:14px'> {station_name}</span></html>"
         self.radio_play_indicator.setText(html)
 
     def _hide_radio_play_indicator(self):
@@ -265,7 +266,7 @@ class SettingsWindow(QWidget):
 
             if config.icon:
                 button.setIcon(
-                    QIcon(os.path.join(utils.BASE, "resources", "icons", config.icon))
+                    QIcon(str(utils.PATH_TO_RESOURCES / "icons" / config.icon))
                 )
                 button.setIconSize(QSize(28, 28))
 
@@ -405,7 +406,7 @@ class MediaPlayerWindow(QWidget):
         self.button = QPushButton(self)
         self.button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
-        self.button.setIcon(QIcon(os.path.join(utils.BASE, "resources", "icons", "musical_note64x64.png")))
+        self.button.setIcon(QIcon(str(utils.PATH_TO_RESOURCES / "icons" / "musical_note64x64.png")))
         self.button.setIconSize(QSize(28, 28))
         base_layout.addWidget(self.button)
 
