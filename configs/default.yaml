@@ -28,14 +28,15 @@ content:
     enabled: true
     handler: get_bbc_news.py
 
-# Supported TTS engines, only 1 can be enabled.
-# TTS option in main section disables TTS.
+# Supported Text to Speech engines, only 1 can be enabled.
 TTS:
+  # Google Cloud Text to Speech API.
+  # Requires GCP project setup with active Application Default Crendetials 
   GCP:
     enabled: false
     handler: get_gcp_tts.py
     auth:
-      service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com  # Service account email to authenticate to GCP
+      service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com  # Service account email to use
 
   google_translate:
     enabled: true

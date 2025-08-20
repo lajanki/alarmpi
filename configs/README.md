@@ -29,6 +29,10 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 * **end**
   * An ending greeting to be used by the TTS client after all components, apart from radio stream, have been processed.
 
+##### alsa
+  Defines the index of the playback sound device to use for output. 
+  See `aplay -l` for detected devices.
+
 ##### content  
   Defines the TTS content of the alarm. 
   * `handler` points to a module in the `src/handlers/` folder responsible for creating the content.
@@ -41,9 +45,8 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 Define which TTS engine to use. Supported engines are:  
 
  1. **GCP**
-    * Google Cloud Text-to-Speech. This provides the most human-like speech, but requires a Google Cloud project with billing enabled.
-    * Service account impersonation is used to authenticate as the service account. This avoids having to download a long lived service account key,
-        but does require an active `gcloud` user level credentials to initiate the impersonation. 
+    * Google Cloud Text-to-Speech. This provides the most human-like speech, but requires a Google Cloud project.
+    * Service account impersonation is used to authenticate as the service account. This avoids having to download a long lived service account key, but does require an authenticated `gcloud` cli to initiate the impersonation. 
       * Additionally, requires the _Service Account Token Creator_ IAM role on the service account.
       * https://cloud.google.com/docs/authentication/use-service-account-impersonation
     * **Using this option may incur costs**
@@ -88,7 +91,6 @@ You can either modify the provided configuration file `default.yaml` or create a
 ```bash
 python main.py my_config.yaml
 ```
-
 
 
 ### Extending the alarm with custom content
