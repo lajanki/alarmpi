@@ -102,10 +102,19 @@ class AlarmConfig:
             logger.warning("alarm_time %s is not valid, Defaulting to 07:00", self["main"]["alarm_time"])
             self["main"]["alarm_time"] = "07:00"
 
-        # Media path should contain at least 1 file. 
+        # Media path should contain at least 1 file.
         # Content of the file is *not* validated, vlc will silently ignore unsupported files.
         if self["media"]["enabled"]:
             assert glob.glob(self["media"]["path"]), "Path to wakeup song is not valid"
+
+        # GCP TTS enabled but no ADC credentials available?
+        if self["TTS"]["GCP"]["enabled"]:
+            credential_lookup_file = os.path.expanduser(
+                "~/.config/gcloud/application_default_credentials.json"
+            )
+            assert os.path.isfile(
+                credential_lookup_file
+            ), "Google Cloud TTS enabled but ADC credentials not found.\n\tSee https://cloud.google.com/docs/authentication/provide-credentials-adc"
 
         return True
 
