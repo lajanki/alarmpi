@@ -253,18 +253,18 @@ class Clock:
 
         self.settings_window.volume_slider.valueChanged.connect(self.set_volume)
         # Set initial handle position and icon. Disable the slider if
-        # couldn't get a meaningful volume level (ie. invalid card in configuration)
+        # couldn't get a meaningful volume level (ie. invalid audio device configuration)
         try:
-            volume_level = utils.get_volume(self.config["alsa"]["card"])
+            volume_level = utils.get_volume(self.config["alsa"]["device_idx"])
             self.set_volume(volume_level)
             self.settings_window.volume_slider.setValue(volume_level)
         except AttributeError as e:
             self.settings_window.volume_slider.setEnabled(False)
             self.set_volume(
                 0
-            )  # Sets icon to muted (as well as attempting to set PCM control to selected card)
+            )  # Sets icon to muted (as well as attempting to set PCM control to selected device)
             event_logger.warning(
-                "Couldn't get volume level. Wrong card value in configuration? Disabling volume slider."
+                "Couldn't get volume level. Wrong device index value in configuration? Disabling volume slider."
             )
 
     def open_settings_window(self):
@@ -493,8 +493,8 @@ class Clock:
         update volume level icon.
         """
         utils.set_volume(
-            self.config["alsa"]["card"], value
-        )  # Sets the actual volume level
+            self.config["alsa"]["device_idx"], value
+        )
 
         if value == 0:
             mode = "muted"

@@ -10,7 +10,7 @@ main:
   end: Thats all for now. Have a nice day.
 
 alsa:
-  card: 1     # ALSA sound card to use for audio volume level, see aplay -l for available cards
+  device_idx: 1     # index of the ALSA audio device to use for output. See aplay -l for detected devices
 
 content:
   greeting:

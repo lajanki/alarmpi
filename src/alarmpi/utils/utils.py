@@ -25,25 +25,26 @@ def time_str_to_dt(s):
     dt = dummy_dt.replace(year=today.year, month=today.month, day=today.day)
     return dt
 
-def get_volume(card):
-    """Get current audio volume level from amixer as integer from 0 to 100.
+def get_volume(device_idx):
+    """Get current audio volume level from ALSA amixer utility as integer from 0 to 100.
     Args:
-        card (int): the sound card to read, see aplay -l for list of
-        cards available.
+        device_idx (int): the index of the ALSA sound device to read.
     """
-    res = subprocess.run(f"amixer -c {card} sget PCM".split(), capture_output=True)
+    res = subprocess.run(f"amixer -c {device_idx} sget PCM".split(), capture_output=True)
 
-    # Response contains volume level as percentage, parse the digits
+    # Response contains volume level as percentage with something like:
+    # Front Left: Playback 45 [60%] [-25.00dB] [on]
+    # Parse as integer.
     s = re.search("\[(\d*)%\]", res.stdout.decode("utf8"))
     return int(s.group(1))
 
-def set_volume(card, level):
+def set_volume(device_idx, level):
     """Set audio volume.
     Args:
-        card (int): same as get_volume
+        device_idx (int): the index of the ALSA sound device to adjust.
         level (int): volume level as percentage, 0 - 100
     """
-    subprocess.run(f"amixer --quiet -c {card} sset PCM {level}%".split())
+    subprocess.run(f"amixer --quiet -c {device_idx} sset PCM {level}%".split())
 
 def get_volume_icon(mode):
     """Determine icon set to use as volume level. If Adwaita Ubuntu theme exists use its icons.

@@ -30,7 +30,7 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
   * An ending greeting to be used by the TTS client after all components, apart from radio stream, have been processed.
 
 ##### alsa
-  Defines the index of the playback sound device to use for output. 
+  Defines the playback audio device to use for output. 
   See `aplay -l` for detected devices.
 
 ##### content  

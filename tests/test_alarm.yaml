@@ -10,7 +10,7 @@ main:
   end: Thats all for now. Have a nice day.
 
 alsa:
-  card: 1
+  device_idx: 1
 
 content:
   greeting:
