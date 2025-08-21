@@ -7,6 +7,7 @@ from datetime import datetime
 
 import yaml
 from alarmpi.utils import rpi_utils
+from alarmpi.core.GUIWidgets import Status
 
 
 logger = logging.getLogger("eventLogger")
@@ -96,11 +97,13 @@ class AlarmConfig:
         except ValueError as e:
             raise AssertionError("Invalid time value for nighttime: " + e.args[0])
 
-        try:
-            datetime.strptime(self["main"]["alarm_time"], "%H:%M")
-        except ValueError as e:
-            logger.warning("alarm_time %s is not valid, Defaulting to 07:00", self["main"]["alarm_time"])
-            self["main"]["alarm_time"] = "07:00"
+        alarm_time = self["main"].get("alarm_time")
+        if alarm_time:
+            try:
+                datetime.strptime(alarm_time, "%H:%M")
+            except ValueError as e:
+                logger.warning("alarm_time %s is not valid. Alarm not active.", alarm_time)
+                self.config["main"]["alarm_time"] = Status.EMPTY.value
 
         # Media path should contain at least 1 file.
         # Content of the file is *not* validated, vlc will silently ignore unsupported files.
