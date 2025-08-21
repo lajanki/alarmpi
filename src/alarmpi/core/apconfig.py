@@ -60,7 +60,7 @@ class AlarmConfig:
             * low_brightness value is valid
             * default radio station is valid
             * nighttime values are in HH:MM
-            * alarm_time is in HH:MM
+            * alarm_time is in HH:MM, if set
             * media path pattern is not empty
         """
 

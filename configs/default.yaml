@@ -11,6 +11,7 @@ main:
 
 alsa:
   device_idx: 1     # index of the ALSA audio device to use for output. See aplay -l for detected devices
+  volume: 70        # initial volume level, 0 - 100
 
 content:
   greeting:

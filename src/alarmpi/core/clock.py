@@ -182,6 +182,14 @@ class Clock:
         default_station = self.config["radio"]["default"]
         self.settings_window.radio_station_combo_box.setCurrentText(default_station)
 
+        # Set audio volume level
+        if self.config["alsa"].get("volume"):
+            # No input validation; the amixer utility will ignore invalid volume levels
+            utils.set_volume(
+                self.config["alsa"]["device_idx"],
+                self.config["alsa"]["volume"]
+            )
+
     def setup_button_handlers(self):
         """Setup button handlers for the main window and settings window."""
         # Setup references to main control buttons in both windows
@@ -260,9 +268,7 @@ class Clock:
             self.settings_window.volume_slider.setValue(volume_level)
         except AttributeError as e:
             self.settings_window.volume_slider.setEnabled(False)
-            self.set_volume(
-                0
-            )  # Sets icon to muted (as well as attempting to set PCM control to selected device)
+            self.set_volume(0)
             event_logger.warning(
                 "Couldn't get volume level. Wrong device index value in configuration? Disabling volume slider."
             )
