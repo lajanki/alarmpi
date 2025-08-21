@@ -10,7 +10,7 @@ main:
   end: Thats all for now. Have a nice day.
 
 alsa:
-  card: 1
+  device_idx: 1
 
 content:
   greeting:
@@ -30,12 +30,12 @@ content:
 
 TTS:
   GCP:
-    enabled: true
+    enabled: false
     handler: get_gcp_tts.py
     credentials: /path/to/key.json
 
   google_translate:
-    enabled: false
+    enabled: true
     handler: get_google_translate_tts.py
 
   festival:

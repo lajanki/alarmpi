@@ -1,9 +1,9 @@
 [project]
 name = "alarmpi"
-version = "3.4.0"
-description = "Alarm clock and radio combination for Raspberry Pi"
+version = "3.5.0"
+description = "Alarm Clock Radio for Raspberry Pi"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "adafruit-circuitpython-dht",
     "feedparser",
@@ -11,12 +11,12 @@ dependencies = [
     "mutagen",
     "num2words",
     "pydub",
-    "PyQt5-sip",
-    "PyQt5==5.15.10",
+    "PyQt5",
     "pyqtspinner",
     "python-dateutil",
     "pyyaml",
-    "requests"
+    "requests",
+    "RPi.GPIO"
 ]
 
 [dependency-groups]

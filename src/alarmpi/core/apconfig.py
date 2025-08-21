@@ -7,6 +7,7 @@ from datetime import datetime
 
 import yaml
 from alarmpi.utils import rpi_utils
+from alarmpi.core.GUIWidgets import Status
 
 
 logger = logging.getLogger("eventLogger")
@@ -59,7 +60,7 @@ class AlarmConfig:
             * low_brightness value is valid
             * default radio station is valid
             * nighttime values are in HH:MM
-            * alarm_time is in HH:MM
+            * alarm_time is in HH:MM, if set
             * media path pattern is not empty
         """
 
@@ -96,16 +97,27 @@ class AlarmConfig:
         except ValueError as e:
             raise AssertionError("Invalid time value for nighttime: " + e.args[0])
 
-        try:
-            datetime.strptime(self["main"]["alarm_time"], "%H:%M")
-        except ValueError as e:
-            logger.warning("alarm_time %s is not valid, Defaulting to 07:00", self["main"]["alarm_time"])
-            self["main"]["alarm_time"] = "07:00"
+        alarm_time = self["main"].get("alarm_time")
+        if alarm_time:
+            try:
+                datetime.strptime(alarm_time, "%H:%M")
+            except ValueError as e:
+                logger.warning("alarm_time %s is not valid. Alarm not active.", alarm_time)
+                self.config["main"]["alarm_time"] = Status.EMPTY.value
 
-        # Media path should contain at least 1 file. 
+        # Media path should contain at least 1 file.
         # Content of the file is *not* validated, vlc will silently ignore unsupported files.
         if self["media"]["enabled"]:
             assert glob.glob(self["media"]["path"]), "Path to wakeup song is not valid"
+
+        # GCP TTS enabled but no ADC credentials available?
+        if self["TTS"]["GCP"]["enabled"]:
+            credential_lookup_file = os.path.expanduser(
+                "~/.config/gcloud/application_default_credentials.json"
+            )
+            assert os.path.isfile(
+                credential_lookup_file
+            ), "Google Cloud TTS enabled but ADC credentials not found.\n\tSee https://cloud.google.com/docs/authentication/provide-credentials-adc"
 
         return True
 

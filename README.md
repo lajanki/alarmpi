@@ -63,18 +63,28 @@ First, install required system packages with
 ```bash
 sudo apt install qtbase5-dev ffmpeg festival vlc gpiod
 ```
-These include the Qt5 development package, Festival text-to-speech engine and vlc media player.
+These include the core Qt5 development package and some additional utilities for audio processing.
 
-Next, install Python packages. The preferred method is with `uv`:
-```bash
-uv sync
-```
+Additionally, [uv](https://docs.astral.sh/uv/getting-started/installation/) is used for project management
 
-Alternatively, if `uv` is not installed, use `pip`
+### Installing Python dependecies
+The UI framework used is `PyQt5` which is tricky to install on a Raspberry Pi as it has to be compiled from source
+and includes a GPL license to accept.
+
+To install the dependencies, run
 ```bash
-pip install -e .
+uv sync --no-install-package PyQt5-Qt5 --config-settings="--confirm-license="
 ```
-But note that this will use mostly unpinned versions of the dependencies and may introduce dependency conflicts or incompatibilities.
+The binary-only package `PyQt5-Qt5` contains a `Qt` installation only needed when not building from source. It is also not availaible for ARM architecture.
+
+See the PyQt documentation for more installation instructions:
+ * https://www.riverbankcomputing.com/static/Docs/PyQt5/installation.html
+
+> [!IMPORTANT]
+> On an older Raspberry Pi model compiling from source can take several hours.
+
+> [!NOTE]
+> On a more conventional architecture a default `uv sync` should be enough to install the dependencies.
 
 Interacting with the Raspberry Pi's screen brightness is done via two system owned by the root user. The following udev rule will make them writable by all users (adapted from https://github.com/linusg/rpi-backlight).
 
@@ -82,27 +92,15 @@ Interacting with the Raspberry Pi's screen brightness is done via two system own
 echo 'SUBSYSTEM=="backlight",RUN+="/bin/chmod 666 /sys/class/backlight/%k/brightness /sys/class/backlight/%k/bl_power"' | sudo tee -a /etc/udev/rules.d/backlight-permissions.rules
 ```
 
-### Troubleshooting install issues
-Installing PyQt on a Raspberry Pi can be troublesome as it has to be compiled from source. In this case the installation may appear
-
-to hang and, after a while be killed, due to a hidden prompt asking to accept its GPL license. In this case install it separately with
-```bash
-pip install PyQt5==5.15.10 --config-settings --confirm-license= --verbose
-```
-and then continue with the rest of the requirements as above.
-
-> [!IMPORTANT]
-> On an older Raspberry Pi model compiling from source can take a couple of hours.
-
 
 ## Usage
 Run the script either with
 ```bash
-uv run alarmpi [configuration_file]
+uv run --no-sync alarmpi [configuration_file]
 ```
 where `[configuration_file]` is a path to a custom alarm configuration file, eg.
 ```bash
-uv run alarmpi ~/alarm_config.yaml
+uv run --no-sync alarmpi ~/alarm_config.yaml
 ```
 If no argument is used the default configuration in, [./configs/default.yaml](./configs/default.yaml) will be used.
 
