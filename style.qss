@@ -59,3 +59,7 @@ QCheckBox::indicator {
      width: 25px;
      height: 25px;
  }
+
+ SettingsWindow QPushButton#numpad_button {
+  font: 12pt;
+}
