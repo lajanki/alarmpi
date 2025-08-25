@@ -80,9 +80,7 @@ class AlarmWindow(QWidget):
         )
 
         # Force a minimum width to keep left alignment from covering part of the spinner
-        loader_indicator.setMinimumWidth(
-            50
-        )  
+        loader_indicator.setMinimumWidth(50)
 
         self.left_plugin_grid = QVBoxLayout()
         left_grid_container.addLayout(self.left_plugin_grid)
@@ -210,6 +208,11 @@ class SettingsWindow(QWidget):
         bottom_grid = QHBoxLayout()
 
         # ** Right grid: numpad for settings the alarm **
+        # Minimize margins between the numpad widgets
+        right_grid.setHorizontalSpacing(2)
+        right_grid.setVerticalSpacing(2)
+        right_grid.setContentsMargins(0, 0, 0, 0)
+
         numpad_button_config = [
             ButtonConfig(text="1", position=(0, 0), slot=True),
             ButtonConfig(text="2", position=(0, 1), slot=True),
@@ -226,7 +229,7 @@ class SettingsWindow(QWidget):
         ]
 
         for config in numpad_button_config:
-            button = QPushButton(config.text, self)
+            button = QPushButton(config.text, self, objectName="numpad_button")
             button.setSizePolicy(
                 QSizePolicy.Preferred,
                 QSizePolicy.Expanding  # buttons should expand in vertical direction
@@ -249,6 +252,8 @@ class SettingsWindow(QWidget):
         right_grid.addWidget(self.input_alarm_time_label, 4, 1)
 
         # ** Bottom level main buttons **
+        bottom_grid.setSpacing(0)
+
         control_button_config = [
             ButtonConfig(text="Play Now", icon="play64x64.png"),
             ButtonConfig(text="Toggle\nWindow", icon="window64x64.png"),

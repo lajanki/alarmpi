@@ -41,21 +41,33 @@ MediaPlayerWindow QPushButton {
   margin: 0px
 }
 
-QSlider {
-  padding-right: 100px;
+QSlider::groove:horizontal {
+  background: #DDDDDD;
+  border: 1px solid #999999;
+  border-radius: 5px;
+  height: 8px;
+}
+
+QSlider::sub-page:horizontal {
+  background: #7da4bdff;
+  border-radius: 5px;
 }
 
 QSlider::handle:horizontal {
-    background-color: rgb(85, 170, 255);
-    border: none;
-    height: 40px;
-    width: 40px;
-    margin: -20px 0;
-    border-radius: 20px;
-    padding: -20px 0px;
+  background: #6b90cb;
+  border: 1px solid #6b90cb;
+  width: 30px;
+  height: 48px;
+  border-radius: 12px;
+  margin-top: -20px;
+  margin-bottom: -20px;
 }
 
 QCheckBox::indicator {
-     width: 25px;
-     height: 25px;
+  width: 25px;
+  height: 25px;
  }
+
+ SettingsWindow QPushButton#numpad_button {
+  font: 12pt;
+}
