@@ -24,7 +24,8 @@ class GoogleTranslateTTSManager(aptts.AlarmpiTTS):
         url = "https://translate.google.com/translate_tts"
 
         parts = textwrap.wrap(text, 200)
-        audio = pydub.AudioSegment.empty()  # init an empty AudioSegment as base for appending other segments
+        # Init an empty AudioSegment as base for appending other segments
+        audio = pydub.AudioSegment.empty()
         for part in parts:
             params = {
                 "tl": "en",
