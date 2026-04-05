@@ -4,6 +4,7 @@ import logging
 import pydub
 from google.cloud import texttospeech
 from google.auth import impersonated_credentials
+import google.auth
 import google.auth.transport.requests
 
 from alarmpi.core import aptts
@@ -46,10 +47,17 @@ class GoogleCloudTTS(aptts.AlarmpiTTS):
             credentials, _ = google.auth.default()
 
         client = texttospeech.TextToSpeechClient(credentials=credentials)
+        event_logger.info("Success!")
         return client
 
-    def setup(self, text):
-        """Create a TTS client and convert input to pydub audio."""
+    def setup(self, text: str):
+        """Synthesize text as speech.
+        
+        Args:
+            text (str): the content to synthesize
+        Return:
+            the synthesized speech as pydub.AudioSegment
+        """
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
         # Build the voice request and specify a WaveNet voice for more human like speech.
@@ -83,6 +91,8 @@ def fetch_service_account_access_token(
 
     Args:
         impersonated_service_account: The email of the service account to impersonate.
+    Return:
+        service account credentials.
     """
 
     # Get current caller identity.

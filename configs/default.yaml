@@ -35,8 +35,11 @@ TTS:
   GCP:
     enabled: false
     handler: get_gcp_tts.py
-    # GCP service account to impersonate.
-    # Alternatively, set GOOGLE_APPLICATION_CREDENTIALS to use Application Default Credentials.
+    # Optional service account to impersonate.
+    # Note: the recommended way to authenticate is to set
+    # GOOGLE_APPLICATION_CREDENTIALS instead to enable Application Default Credentials.
+    # Service account impersonation avoids static secrets but requires base
+    # runtime credentials to initiate the impersonation.
     auth:
       service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
 
