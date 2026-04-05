@@ -81,6 +81,14 @@ class AlarmConfig:
         )
         assert n_tts_enabled <= 1, "Multiple enabled TTS engines detected"
 
+        # If GCP TTS is enabled, check if ADC credentials are available.
+        if self["TTS"]["GCP"]["enabled"]:
+            import google.auth
+            try:
+                google.auth.default()
+            except Exception as e:
+                raise RuntimeError("GCP TTS enabled but unable to load credentials. Is GOOGLE_APPLICATION_CREDENTIALS set?") from e
+
         brightness = self["main"]["low_brightness"]
         assert (
             9 <= brightness <= 255
