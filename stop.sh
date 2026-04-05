@@ -25,4 +25,4 @@ kill -s USR1 $pid
 # Stop any running alarms
 pkill cvlc
 pkill -f "play_alarm.py"
-kill $pid
+kill $pid 2>/dev/null
