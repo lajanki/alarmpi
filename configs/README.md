@@ -46,9 +46,9 @@ Define which TTS engine to use. Supported engines are:
 
  1. **GCP**
     * Google Cloud Text-to-Speech. This provides the most human-like speech, but requires a Google Cloud project.
-    * Service account impersonation is used to authenticate as the service account. This avoids having to download a long lived service account key, but does require an authenticated `gcloud` cli to initiate the impersonation. 
-      * Additionally, requires the _Service Account Token Creator_ IAM role on the service account.
-      * https://cloud.google.com/docs/authentication/use-service-account-impersonation
+    * To authenticate, either:
+      * set GOOGLE_APPLICATION_CREDENTIALS environment variable (see https://docs.cloud.google.com/docs/authentication/application-default-credentials), or
+      * point the `auth` section to a service account to impersonate. This avoids relying on a static service account key, but does require an authenticated `gcloud` cli session to initiate the impersonation.
     * **Using this option may incur costs**
       * A single run of the alarm generates about 1100 characters of text. The alarm uses _WaveNet_ speech synthesis which has a free tier of 1 million characters per month
       * See https://cloud.google.com/text-to-speech/pricing for pricing
@@ -87,9 +87,9 @@ Additional content known as plugins can be enabled:
 
 
 ## Using a custom configuration
-You can either modify the provided configuration file `default.yaml` or create a new file and pass that to `main.py` via a command line argument, eg.
+You can either modify the provided configuration file `default.yaml` or create a new file and pass it as a command line argument:
 ```bash
-python main.py my_config.yaml
+uv run alarmpi my_config.yaml
 ```
 
 
