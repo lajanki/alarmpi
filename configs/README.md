@@ -42,7 +42,7 @@ Only one engine is can be enabled.
 
 | Engine | Summary |
 |--------|---------|
-| **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Most natural voice; needs a GCP project. **Auth:** set `GOOGLE_APPLICATION_CREDENTIALS`, or use `auth` + service account impersonation (requires active user credentials). **Cost:** Moderate usage likely falls under free tier — see [pricing](https://cloud.google.com/text-to-speech/pricing) |
+| **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Most natural voice; needs a GCP project. **Authentication:** set `GOOGLE_APPLICATION_CREDENTIALS` to enable Application Default Credentials. Alternatively, configure service account to impersonate through `auth` section, but this still requires runtime user credentials to initiate the impersonation. **Cost:** Moderate usage likely falls under free tier — see [pricing](https://cloud.google.com/text-to-speech/pricing). |
 | **google_translate** | Unofficial Google Translate TTS; ~200 characters per request (pauses between chunks). May break without notice. Enabled by default in the sample config. |
 | **festival** | [Festival](https://www.cstr.ed.ac.uk/projects/festival/): offline, most robotic. Fallback when `main.TTS` is true but no engine is enabled. |
 

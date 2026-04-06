@@ -40,8 +40,8 @@ TTS:
     # GOOGLE_APPLICATION_CREDENTIALS instead to enable Application Default Credentials.
     # Service account impersonation avoids static secrets but requires base
     # runtime credentials to initiate the impersonation.
-    auth:
-      service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
+    # auth:
+    #   service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
 
   google_translate:
     enabled: true
