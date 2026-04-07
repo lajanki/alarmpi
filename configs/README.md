@@ -3,93 +3,84 @@
 Many features of the alarm, such as alarm content and radio streams to use, can be configured via a .yaml configuration file. By default `configs/default.yaml` will be used.
 
 
-### default.yaml description
-
-#### main  
-* **alarm_time**
-  * Default alarm time in HH:MM format.
-  * Actual alarm needs to be enabled (or overridden) from the GUI. 
-* **low_brightness**
-  * Minimum value to set display brightness to when toggling between max and low brightness. Should be between 9 and 255.
-  * **Raspberry Pi only**
-* **full_brightness_on_alarm**  
-  * When enabled, screen brightness is set to full when the alarm triggers.
-  * Can also be toggled from the settings window.
-  * **Raspberry Pi only**
-* **nighttime**  
-  * Determines time range for nightmode. During this time:
-    * display brightness will be set to low when an alarm is set, and
-    * when the display is woken up from blank mode, a short timer will be set to re-blank it.
-  * Nightmode is useful for quickly checking the time during the night without to manually interact with full brigtness display.
-  * Nightmode can also be toggled from the settings window.
-  * **Raspberry Pi only**
-* **TTS**
-  * Enable/disable text-to-speech alarms. When enabled alarm content will be played as speech, when disabled a beeping sound effect will play as the alarm.
-  * Can also be toggled from the settings window.
-* **end**
-  * An ending greeting to be used by the TTS client after all components, apart from radio stream, have been processed.
-
-##### alsa
-  Defines the audio playback device and the initial volume level. 
-  See `aplay -l` for detected devices.
-
-##### content  
-  Defines the TTS content of the alarm. 
-  * `handler` points to a module in the `src/handlers/` folder responsible for creating the content.
-  * Additional, content specific, configuration is also passed here. For instance, to get weather data from _openweathermap.org_ an API key needs to be set. See https://openweathermap.org/appid for registering for an API key and http://bulk.openweathermap.org/sample/ for cityid codes.
-
-**Note:** content sections are parsed in the order they appear in the configuration; greeting should come first.
+### `default.yaml` reference
 
 
-#### TTS engines  
-Define which TTS engine to use. Supported engines are:  
+#### `main`
 
- 1. **GCP**
-    * Google Cloud Text-to-Speech. This provides the most human-like speech, but requires a Google Cloud project.
-    * Service account impersonation is used to authenticate as the service account. This avoids having to download a long lived service account key, but does require an authenticated `gcloud` cli to initiate the impersonation. 
-      * Additionally, requires the _Service Account Token Creator_ IAM role on the service account.
-      * https://cloud.google.com/docs/authentication/use-service-account-impersonation
-    * **Using this option may incur costs**
-      * A single run of the alarm generates about 1100 characters of text. The alarm uses _WaveNet_ speech synthesis which has a free tier of 1 million characters per month
-      * See https://cloud.google.com/text-to-speech/pricing for pricing
+| Key | Purpose |
+|-----|---------|
+| **alarm_time** | Alarm time in `HH:MM` format. Additionally, the alarm must be enabled from the GUI. |
+| **low_brightness** | Minimum brightness when toggling between max and low (9–255). *Raspberry Pi only.* |
+| **full_brightness_on_alarm** | When enabled, brightness goes to full when the alarm fires. Also in settings. *Raspberry Pi only.* |
+| **nighttime** | Night mode time range. While active: brightness stays low when an alarm is set; waking from blank starts a short timer to re-blank. Handy for checking the time at night without full brightness. Also in settings. *Raspberry Pi only.* |
+| **TTS** | Enable Text-to-Speech alarm content. A beeping sound effect is played if disabled. |
+| **end** | Closing line spoken by the TTS client after everything except the radio stream. |
 
- 1. **google_translate**
-    * Google Translate Text-to-Speech engine.
-    * This uses an undocumented and unofficial API used in Google Translate. Has a limit of 200 characters per requests which results in noticeable pauses between chunks of text.
-      * Google may change or prevent using this API at any time.
-    * Enabled by default
+---
 
- 1. **festival**
-    * Festival is a general purpose TTS system. Does not require an internet access and provides the most robotic voice.
-    * Used as a fallback when TTS is enabled but no engine is explicitly specified.
-    * https://www.cstr.ed.ac.uk/projects/festival/
+#### `alsa`
+
+ALSA Audio output device configuration: playback device and initial volume. Use `aplay -l` to list devices.
+
+---
+
+#### `content`
+
+Alarm speech content. Each block can point at a handler and pass extra options (for example OpenWeatherMap API keys).
+
+- **`handler`** — module under `src/handlers/` that builds that segment’s text.
+- **Other keys** — engine- or source-specific (e.g. OpenWeatherMap: [API keys](https://openweathermap.org/appid), [city IDs](http://bulk.openweathermap.org/sample/)).
+
+**Order:** Blocks are processed in YAML order; **greeting** should be processed first.
+
+---
+
+#### `TTS` (engines)
+
+Only one engine is can be enabled.
+
+| Engine | Summary |
+|--------|---------|
+| **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Most natural voice; needs a GCP project. **Authentication:** set `GOOGLE_APPLICATION_CREDENTIALS` to enable Application Default Credentials. Alternatively, configure service account to impersonate through `auth` section, but this still requires runtime user credentials to initiate the impersonation. **Cost:** Moderate usage likely falls under free tier — see [pricing](https://cloud.google.com/text-to-speech/pricing). |
+| **google_translate** | Unofficial Google Translate TTS; ~200 characters per request (pauses between chunks). May break without notice. Enabled by default in the sample config. |
+| **festival** | [Festival](https://www.cstr.ed.ac.uk/projects/festival/): offline, most robotic. Fallback when `main.TTS` is true but no engine is enabled. |
 
 > [!NOTE]
->  * Only one TTS engine can be enabled.
->  * If all TTS engines are disabled but the top level flag **TTS=true** is set, _Festival_ will be used.
->  * If disabled in the main config with **TTS=false** and no wakeup song is set, a beeping sound effect will play instead.
+> - Engine defaults to **festival** if not specified.
+> - If TTS is disabled a beeping sound effect will play on alarm.
+> - GCP: A single alarm generates around 1 100 characters falling well within the  WaveNet free tier
 
+---
 
-**radio**  
-Radio station urls to enable.
- * The stream will be played though `cvlc`
- * The radio stream plays in a separate process from the Python process running the alarm. While the UI's _radio_ and _close_ buttons take care of terminating the process, a separate `stop.sh` shell script can also be used to terminate both processes. This is useful if the alarm is run in headless mode.
+#### `radio`
 
-**media**  
-Defines an optional wakeup song to be played. 
- * `path` should be a wildcard pattern (a _glob_ pattern) to a set of files. A random file will be chosen on alarm.
- * The song will be played before any TTS content.
+Station URLs for the radio feature. Playback uses `cvlc`. The stream runs outside the main Python process; the UI **radio** / **close** buttons or the `stop.sh` script can stop it (useful in headless mode).
 
-**plugins**  
-Additional content known as plugins can be enabled:
- 1. `HSL` - Finnish Transport agency's commuter train departures from selected station. Uses DigiTraffic API, see https://www.digitraffic.fi/en/railway-traffic/. Disabled by default.
- 2. `DHT22` - indoor temperature using a [DHT22 sensor](https://learn.adafruit.com/dht). Disabled by default.
+---
+
+#### `media`
+
+Optional wakeup track before TTS.
+
+- **`path`** — glob to audio files; one file is chosen at random each alarm.
+
+---
+
+#### `plugins`
+
+Extra data sources (disabled by default):
+
+| Plugin | What it does |
+|--------|----------------|
+| **HSL** | Commuter train departures (Finland). [DigiTraffic](https://www.digitraffic.fi/en/railway-traffic/). |
+| **DHT22** | Indoor temperature via a [DHT22](https://learn.adafruit.com/dht) sensor. |
 
 
 ## Using a custom configuration
-You can either modify the provided configuration file `default.yaml` or create a new file and pass that to `main.py` via a command line argument, eg.
+You can either modify the provided configuration file `default.yaml` or create a new file and pass it as a command line argument:
 ```bash
-python main.py my_config.yaml
+uv run alarmpi my_config.yaml
 ```
 
 

@@ -23,21 +23,25 @@ content:
     handler: get_weather.py
     credentials: /path/to/credentials       # file containing openweather API key, see https://openweathermap.org/appid
     city_id: null                           # http://bulk.openweathermap.org/sample/
-    units: metric                           # # metric|imperial
+    units: metric                           # metric|imperial
 
   BBC_news:
     enabled: true
     handler: get_bbc_news.py
 
-# Supported Text to Speech engines, only 1 can be enabled.
 TTS:
   # Google Cloud Text to Speech API.
-  # Requires GCP project setup with active Application Default Crendetials 
+  # Note: This requires additional GCP project setup.
   GCP:
     enabled: false
     handler: get_gcp_tts.py
-    auth:
-      service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com  # Service account email to use
+    # Optional service account to impersonate.
+    # Note: the recommended way to authenticate is to set
+    # GOOGLE_APPLICATION_CREDENTIALS instead to enable Application Default Credentials.
+    # Service account impersonation avoids static secrets but requires base
+    # runtime credentials to initiate the impersonation.
+    # auth:
+    #   service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
 
   google_translate:
     enabled: true

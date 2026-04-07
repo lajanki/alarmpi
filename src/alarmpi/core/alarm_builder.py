@@ -26,8 +26,10 @@ class AlarmBuilder:
         self.audio = None
 
     def build(self):
-        """Loop through the configuration file for enabled content sections
-        and generate content.
+        """Build an alarm.
+
+        Loop through the configuration file for enabled content sections
+        and generate matching content.
         """
         # Initialize content with greeting
         contents = []
@@ -64,8 +66,10 @@ class AlarmBuilder:
             self.audio = self.tts_client.setup(content_text)
 
     def play(self):
-        """Play an alarm. Either play a pre-built alarm via the configured TTS client
-        or play a beeping sound effect.
+        """Play an alarm.
+        
+        If TTS is enabled, play the content of a pre-built alarm.
+        Otherwise play a beeping sound effect. 
         """
         # Play wakeup song if enabled
         wakeup_song_enabled = self.config["media"]["enabled"]
@@ -94,9 +98,12 @@ class AlarmBuilder:
 
     def build_and_play(self):
         """Build and play an alarm.
-        This is provided as a CLI interface for playing the alarm.
-        Since the alarm is built on the go, there may be a few seconds delay on play.
+
+        This is provided as a dedicated CLI interface for playing an alarm
+        without GUI interaction.
+        Since the alarm is built on the go there may be some delay on play.
         """
+        self.build()
         self.play()
 
         # Play the radio stream if enabled
@@ -136,8 +143,12 @@ class AlarmBuilder:
         return client
 
     def get_content_parser_class(self, section):
-        """Given config file section name, return the class matching the handler."""
-        # use importlib to dynamically import the correct module within
+        """Given config file section name, return the class matching the handler.
+        
+        Args:
+            section (dict): config file section
+        """
+        # Use importlib to dynamically import the correct module within
         # the 'handlers' package.
         path_to_module = f"alarmpi.handlers.{section['handler'][:-3]}"
         handler_module = importlib.import_module(path_to_module)

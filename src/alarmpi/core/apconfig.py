@@ -57,8 +57,8 @@ class AlarmConfig:
         """Validate configuration file: checks that
             * content and TTS sections have 'handler' key
             * at most 1 TTS engine is enabled
-            * low_brightness value is valid
-            * default radio station is valid
+            * low_brightness value is within range
+            * default radio station url is known
             * nighttime values are in HH:MM
             * alarm_time is in HH:MM, if set
             * media path pattern is not empty
@@ -80,6 +80,14 @@ class AlarmConfig:
             ]
         )
         assert n_tts_enabled <= 1, "Multiple enabled TTS engines detected"
+
+        # If GCP TTS is enabled, check if ADC credentials are available.
+        if self["TTS"]["GCP"]["enabled"]:
+            import google.auth
+            try:
+                google.auth.default()
+            except Exception as e:
+                raise RuntimeError("GCP TTS enabled but unable to load credentials. Is GOOGLE_APPLICATION_CREDENTIALS set?") from e
 
         brightness = self["main"]["low_brightness"]
         assert (
@@ -109,15 +117,6 @@ class AlarmConfig:
         # Content of the file is *not* validated, vlc will silently ignore unsupported files.
         if self["media"]["enabled"]:
             assert glob.glob(self["media"]["path"]), "Path to wakeup song is not valid"
-
-        # GCP TTS enabled but no ADC credentials available?
-        if self["TTS"]["GCP"]["enabled"]:
-            credential_lookup_file = os.path.expanduser(
-                "~/.config/gcloud/application_default_credentials.json"
-            )
-            assert os.path.isfile(
-                credential_lookup_file
-            ), "Google Cloud TTS enabled but ADC credentials not found.\n\tSee https://cloud.google.com/docs/authentication/provide-credentials-adc"
 
         return True
 
