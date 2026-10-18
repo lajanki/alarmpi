@@ -1,6 +1,7 @@
 **__pycache__/
 venv/
 .vscode/
+configs/dev_config.yaml
 *.mp3
 *.log
 logs/*.log
