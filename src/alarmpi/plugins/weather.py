@@ -14,6 +14,10 @@ class WeatherPlugin(AlarmpiPlugin):
             partial(OpenWeatherMapClient, config, include_icon=True),
             refresh_interval, parent,
         )
+        self.error_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+
         self.temperature_label = QLabel(self)
         self.wind_label = QLabel(self)
         self.icon_label = QLabel(self)
