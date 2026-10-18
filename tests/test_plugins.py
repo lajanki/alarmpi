@@ -13,6 +13,7 @@ from alarmpi.core import GUIWidgets, apconfig, clock
 from alarmpi.plugins import enabled_plugins
 from alarmpi.plugins.trains import TrainPlugin
 from alarmpi.plugins.weather import WeatherPlugin
+from tests.test_clients import WEATHER_CONFIG
 from tests.test_plugin_polling import FakeSource, wait, wait_until
 
 
@@ -68,11 +69,11 @@ def test_widgets_own_layouts_and_do_not_collide(dht_module):
         assert indoor.dht22_label.parentWidget() is indoor
         weather.show_error("offline")
         indoor.update_display(0)
-        assert "offline" in weather.error_label.text()
+        assert weather.error_label.text() == "ERR"
         assert "0°C" in indoor.dht22_label.text()
         indoor.show_error("sensor offline")
         assert "0°C" in indoor.dht22_label.text()
-        assert "sensor offline" in indoor.error_label.text()
+        assert indoor.error_label.text() == "ERR"
         indoor.update_display(10)
         assert indoor.error_label.text() == ""
     finally:
@@ -81,7 +82,77 @@ def test_widgets_own_layouts_and_do_not_collide(dht_module):
         window.close()
 
 
-def test_weather_partial_failure_updates_text_and_retries():
+@pytest.mark.parametrize("error", [
+    FileNotFoundError(2, "No such file", "/private/weather-api-key"),
+    PermissionError(13, "Permission denied", "/private/weather-api-key"),
+    UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid credential encoding"),
+])
+def test_weather_credential_errors_are_safe_for_display(error, caplog):
+    widget = WeatherPlugin(WEATHER_CONFIG, 60)
+    widget.temperature_label.setText("12°C")
+    widget.poller.retry_timer.setInterval(60_000)
+    try:
+        with patch("builtins.open", side_effect=error):
+            widget.start()
+            wait_until(lambda: bool(widget.error_label.text()))
+        assert widget.error_label.text() == "ERR"
+        assert widget.temperature_label.text() == "12°C"
+        assert widget.poller.retry_timer.isActive()
+        records = [
+            record for record in caplog.records
+            if record.name == "pluginLogger" and record.exc_info
+        ]
+        assert records
+        exception = records[-1].exc_info[1]
+        assert exception is not None
+        assert exception.__cause__ is error
+        assert str(error) in caplog.text
+    finally:
+        widget.stop()
+
+
+@pytest.mark.parametrize("plugin_name", ["weather", "trains", "dht22"])
+@pytest.mark.parametrize("error", [
+    SourceError("Request failed: private connection details"),
+    KeyError("private configuration key"),
+])
+def test_plugin_errors_only_display_err(plugin_name, error, caplog):
+    from alarmpi.plugins.dht22 import DHT22Plugin
+
+    factories = {
+        "weather": (
+            "alarmpi.plugins.weather.OpenWeatherMapClient",
+            lambda: WeatherPlugin({}, 60),
+        ),
+        "trains": (
+            "alarmpi.plugins.trains.TrainClient",
+            lambda: TrainPlugin({"refresh_interval": 60, "trains": 2}),
+        ),
+        "dht22": (
+            "alarmpi.plugins.dht22.DHT22Client",
+            lambda: DHT22Plugin({"refresh_interval": 60}),
+        ),
+    }
+    factory_path, create_widget = factories[plugin_name]
+    source = FakeSource((error,))
+    with patch(factory_path, return_value=source):
+        widget = create_widget()
+    try:
+        widget.start()
+        wait_until(lambda: bool(widget.error_label.text()))
+        assert widget.error_label.text() == "ERR"
+        assert str(error) in caplog.text
+        assert any(
+            record.name == "pluginLogger" and record.exc_info
+            for record in caplog.records
+        )
+        if plugin_name == "dht22":
+            assert widget.dht22_label.text() == ""
+    finally:
+        widget.stop()
+
+
+def test_weather_partial_failure_updates_text_and_retries(caplog):
     reading = WeatherReading(
         12.5, "clear", 3, 10.8, 11, "07:00", "18:00",
         icon_error="icon offline",
@@ -97,19 +168,21 @@ def test_weather_partial_failure_updates_text_and_retries():
         wait_until(lambda: len(source.fetch_threads) == 2)
         wait(30)
         assert widget.temperature_label.text() == "12°C"
-        assert "icon offline" in widget.error_label.text()
+        assert widget.error_label.text() == "ERR"
+        assert "icon offline" in caplog.text
         assert len(source.fetch_threads) == 2
     finally:
         widget.stop()
 
 
-def test_invalid_icon_reports_error_and_valid_icon_recovers():
+def test_invalid_icon_reports_error_and_valid_icon_recovers(caplog):
     widget = WeatherPlugin({}, 60)
     reading = WeatherReading(
         10, "clear", 2, 7.2, 9, "07:00", "18:00", b"invalid",
     )
     widget.update_display(reading)
-    assert "Invalid weather icon" in widget.error_label.text()
+    assert widget.error_label.text() == "ERR"
+    assert "Invalid weather icon image" in caplog.text
     image = QImage(2, 2, QImage.Format_RGB32)
     image.fill(0)
     buffer = QBuffer()
@@ -146,6 +219,7 @@ def test_train_rendering_clears_unused_labels_and_preserves_data_on_error():
     assert widget.train_labels[1].text() == "R 12:00 CANCELLED"
     assert widget.train_labels[2].text() == ""
     widget.show_error("offline")
+    assert widget.error_label.text() == "ERR"
     assert widget.train_labels[0].text() == "K 12:00 ⇒ 12:05"
     widget.update_display([])
     assert all(label.text() == "" for label in widget.train_labels)

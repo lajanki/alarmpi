@@ -169,8 +169,8 @@ class AlarmpiPlugin(QWidget):
         self.poller = PluginPoller(create_source, refresh_interval, self)
         self.poller.failed.connect(self.show_error)
 
-    def show_error(self, message):
-        self.error_label.setText(f"! not refreshed - {message}")
+    def show_error(self, _message):
+        self.error_label.setText("ERR")
 
     def start(self):
         self.poller.start()

@@ -25,8 +25,11 @@ class OpenWeatherMapClient:
     def __init__(self, section_data, *, include_icon=False):
         self.city_id = section_data["city_id"]
         self.include_icon = include_icon
-        with open(section_data["credentials"]) as f:
-            self.credentials = f.read().strip()
+        try:
+            with open(section_data["credentials"]) as f:
+                self.credentials = f.read().strip()
+        except (OSError, UnicodeError) as e:
+            raise SourceError("Unable to read weather credentials") from e
 
     def fetch(self) -> WeatherReading:
         params = {
@@ -84,6 +87,9 @@ class OpenWeatherMapClient:
 
     @staticmethod
     def compute_wind_chill(temp, wind_speed):
+        # Canadian/US wind chill index: temperature in Celsius, wind in km/h.
+        # Defined for temperatures <= 10 C and wind speeds > 4.8 km/h.
+        # https://en.wikipedia.org/wiki/Wind_chill#North_American_and_United_Kingdom_wind_chill_index
         return (
             13.12 + 0.6215 * temp - 11.37 * wind_speed ** 0.16
             + 0.3965 * temp * wind_speed ** 0.16
@@ -94,4 +100,5 @@ class OpenWeatherMapClient:
         return datetime.datetime.fromtimestamp(ts).strftime("%I:%M %p")
 
     def close(self):
-        """No persistent resources to release."""
+        # No persistent resources to release.
+        return

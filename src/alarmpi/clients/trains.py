@@ -22,7 +22,8 @@ class TrainClient:
         return self.format_next_departures(api_response)
 
     def close(self):
-        """No persistent resources to release."""
+        # No persistent resources to release.
+        return
 
     def format_next_departures(self, api_response):
         """Format a list of API response departures to a list of dicts

@@ -21,8 +21,3 @@ class DHT22Plugin(AlarmpiPlugin):
     def update_display(self, temperature: float):
         self.error_label.clear()
         self.dht22_label.setText(f"⌂ {round(temperature)}°C")
-
-    def show_error(self, message):
-        if not self.dht22_label.text():
-            self.dht22_label.setText("ERR")
-        super().show_error(message)
