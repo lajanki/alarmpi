@@ -25,7 +25,6 @@ The ritual killing of animals such as goats could soon be outlawed at Sri Lanka'
 
 Thats all for now. Have a nice day.
 ```
-[Play on SoundCloud](https://soundcloud.com/lajanki/pialarm_sample)
 
 
 This is a fork of https://github.com/skiwithpete/alarmpi. After seeing it on [YouTube](https://youtu.be/julETnOLkaU), I thought it was neat and knew I wanted to use it to replace my old night table clock radio.
@@ -105,11 +104,7 @@ uv run --no-sync alarmpi ~/alarm_config.yaml
 If no argument is used the default configuration in, [./configs/default.yaml](./configs/default.yaml) will be used.
 
 
-This opens a digital clock interface with current time as well a settings window for setting the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
-
-If the radio stream is enabled as part of the alarm it will be played in a separate process using `cvlc` command line media player.
-
-When activated, the alarm works as a toggle; once it triggers, it will be deactivated and needs to be re-enabled in order to trigger again the next morning.
+This opens a digital clock interface as well a settings window for configuring the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
 
 The optional configuration file can be used to customize the alarm as well as additional plugin based functionality, see [configs/README.md](./configs/README.md) for instructions.
 

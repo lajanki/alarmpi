@@ -78,15 +78,11 @@ Extra data sources (disabled by default):
 | **openweathermap.org** | Current outdoor temperature, wind, and weather icon. Uses credentials and city settings from `content.openweathermap.org`, even if its spoken content is disabled. |
 
 Each plugin's `refresh_interval` is in seconds and must be positive. Plugins
-fetch data on background workers, leaving the clock and controls responsive.
-Failed refreshes retain the last successful display and show an error status.
-Each refresh may be retried once after 10 seconds, including the initial refresh.
-Weather icon failures still update the temperature and wind.
+fetch data on background workers to avoid intefering with the main GUI thread.
+Failed refreshes retain the last successful display with an additional `ERR` message.
+Detailed errors are kept in the plugin error log, not displayed in the widgets.
 
-Plugin widgets are stacked independently in the left or right sidebar. Workers
-and sensor resources are stopped when the main window closes or the application
-quits. Shutdown waits for an in-flight fetch; network requests use 5-second
-connect and 10-second read timeouts.
+Plugin widgets are stacked independently in the left or right sidebar.
 
 
 ## Using a custom configuration
