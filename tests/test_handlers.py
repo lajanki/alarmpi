@@ -1,47 +1,46 @@
+from unittest.mock import mock_open, patch
+
 import requests
-from unittest.mock import patch, mock_open
 
-from alarmpi.handlers import get_weather, get_next_trains
+from alarmpi.handlers.get_weather import WeatherContent
+from tests.test_clients import WEATHER_CONFIG, WEATHER_RESPONSE
 
 
+def test_weather_speech_does_not_download_icon():
+    with (
+        patch("builtins.open", mock_open(read_data="test-api-key")),
+        patch("requests.get") as get,
+    ):
+        get.return_value.json.return_value = WEATHER_RESPONSE
+        content = WeatherContent(WEATHER_CONFIG)
+        content.build()
+    speech = content.get()
+    assert speech is not None
+    assert "clear sky" in speech
+    assert "12 degrees" in speech
+    get.assert_called_once()
 
-def test_failing_train_api_request():
-    """Test responses sent on failing train API calls"""
-    parser = get_next_trains.TrainParser({"station_code": "XYZ"})
 
-    # Error raised during request
-    with patch("requests.get") as mock_get:
-        mock_get.side_effect = requests.exceptions.RequestException("Something went wrong")
-        res = parser.run()
-        assert res == {"error": {"message": "Something went wrong", "status_code": 503}}
+def test_weather_speech_reports_failure(caplog):
+    with patch("requests.get", side_effect=requests.Timeout("offline")):
+        with patch("builtins.open", mock_open(read_data="test-api-key")):
+            content = WeatherContent(WEATHER_CONFIG)
+            content.build()
+    assert content.get() == "Failed to read openweathermap.org. "
+    assert "offline" in caplog.text
 
-    # Unsuccesful response from the API
-    with patch("requests.get") as mock_get:
-        mock_get.return_value.status_code = 500
-        mock_get.return_value.text = "Something went wrong"
-        res = parser.run()
-        assert res == {"error": {"message": "Something went wrong", "status_code": 500}}
 
-def test_failing_weather_api_request():
-    """Test responses sent on failing weather API calls"""
-    # Mock opening non existing credentials file
-    section_data = {"credentials": None, "city_id": None, "units": None}
-    with patch("builtins.open", mock_open(read_data="data")) as mock_file:
-        parser = get_weather.OpenWeatherMapClient(section_data)
-
-    # Error raised during request
-    with patch("requests.get") as mock_get:
-        mock_get.side_effect = requests.exceptions.RequestException("Network error")
-        res = parser.fetch_and_format_weather()
-        assert res == {"error": {"message": "Network error", "status_code": 503}}
-
-        # Is the TTS content set to a generic error message
-        parser.build()
-        parser.content = "Failed to read openweathermap.org. "
-
-    # Invalid response
-    with patch("requests.get") as mock_get:
-        mock_get.return_value.status_code = 500
-        mock_get.return_value.text = "Something went wrong"
-        res = parser.fetch_and_format_weather()
-        assert res == {"error": {"message": "Something went wrong", "status_code": 500}}
+def test_weather_high_wind_speech():
+    response = {
+        **WEATHER_RESPONSE, "wind": {"speed": 40},
+    }
+    with (
+        patch("builtins.open", mock_open(read_data="test-api-key")),
+        patch("requests.get") as get,
+    ):
+        get.return_value.json.return_value = response
+        content = WeatherContent(WEATHER_CONFIG)
+        content.build()
+    speech = content.get()
+    assert speech is not None
+    assert "hurricane force winds at 144.0 kilometres per hour" in speech

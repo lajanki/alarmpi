@@ -49,7 +49,7 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
         "get_gcp_tts.py": get_gcp_tts.GoogleCloudTTS,
         "get_google_translate_tts.py": get_google_translate_tts.GoogleTranslateTTSManager,
         "get_greeting.py":  get_greeting.Greeting,
-        "get_weather.py": get_weather.OpenWeatherMapClient
+        "get_weather.py": get_weather.WeatherContent
     }
 
     for module, class_ in handler_map.items():

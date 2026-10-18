@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPixmap
 
-from alarmpi.handlers import get_weather
+from alarmpi.clients import SourceError
+from alarmpi.clients.weather import OpenWeatherMapClient
 from alarmpi.core import applugin
 
 
@@ -11,7 +12,7 @@ class WeatherPlugin(applugin.AlarmpiPlugin):
 
     def __init__(self, parent):
         config_data = parent.config["content"]["openweathermap.org"]
-        self.parser = get_weather.OpenWeatherMapClient(config_data)
+        self.parser = OpenWeatherMapClient(config_data, include_icon=True)
         super().__init__(parent)
 
     def create_widgets(self):
@@ -37,34 +38,25 @@ class WeatherPlugin(applugin.AlarmpiPlugin):
         _timer.start(refresh_interval_msec)
 
     def update_weather(self):
-        """Update the weather labels on the main window. Makes an API request to
-        openweathermap.org for current temperature and windspeed.
-        """
+        """Fetch weather through the shared client and update existing labels."""
         self.retry_flag = False
-        weather = self.parser.fetch_and_format_weather()
-        pixmap = QPixmap()
-
-        if "error" in weather:
-            self.error_label.setText("<html><span style='font-size:14px'>! not refreshed - {}</span></html>".format(weather["error"]["status_code"]))
+        try:
+            weather = self.parser.fetch()
+        except SourceError as e:
+            self.error_label.setText(f"! not refreshed - {e}")
             self.retry_flag = True
             return
 
         self.error_label.clear()
-        temperature = weather["temp"]
-        wind = weather["wind_speed_ms"]
+        self.temperature_label.setText(f"{round(weather.temp)}°C")
+        self.wind_label.setText(f"{round(weather.wind_speed_ms)}m/s")
 
-        msg = f"{round(temperature)}°C"
-        self.temperature_label.setText(msg)
-
-        msg = f"{round(wind)}m/s"
-        self.wind_label.setText(msg)
-
-        # Weather icon is fetched via a separate API call which
-        # may fail regardless of the main call.
-        if weather["icon"] is None:
+        if weather.icon_error:
+            self.error_label.setText(f"! not refreshed - {weather.icon_error}")
             self.retry_flag = True
             return
 
-        pixmap.loadFromData(weather["icon"])
-        pixmap = pixmap.scaledToWidth(64)
-        self.icon_label.setPixmap(pixmap)
+        if weather.icon is not None:
+            pixmap = QPixmap()
+            pixmap.loadFromData(weather.icon)
+            self.icon_label.setPixmap(pixmap.scaledToWidth(64))
