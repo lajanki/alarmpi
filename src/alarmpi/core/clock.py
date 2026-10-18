@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
 from alarmpi.core import apconfig, alarm_builder, GUIWidgets
+from alarmpi.plugins import enabled_plugins
 from alarmpi.utils import rpi_utils, utils, debug_write
 
 
@@ -32,7 +33,13 @@ class Clock:
         self.config = apconfig.AlarmConfig(config_file)
         self.alarm_player = alarm_builder.AlarmBuilder(self.config)
 
+        app = QApplication.instance()
+        if app is None:
+            raise RuntimeError("Clock requires an existing QApplication")
         self.main_window = GUIWidgets.AlarmWindow()
+        self.plugins = []
+        self.main_window.closing.connect(self.stop_plugins)
+        app.aboutToQuit.connect(self.stop_plugins)
         self.settings_window = GUIWidgets.SettingsWindow(self.config)
         self.media_window = GUIWidgets.MediaPlayerWindow()
 
@@ -98,34 +105,10 @@ class Clock:
         """
         self.setup_button_handlers()
 
-        # Enable various plugin pollers if enabled in the config.
-        # Note: plugins defined as instance variables to prevent
-        # their pollers from being garbage collected.
-        if self.config["plugins"]["openweathermap.org"]["enabled"]:
-            from alarmpi.plugins import weather
-
-            self.weather_plugin = weather.WeatherPlugin(self)
-            self.weather_plugin.create_widgets()
-            self.weather_plugin.setup_polling()
-
-        if self.config["plugins"]["HSL"]["enabled"]:
-            from alarmpi.plugins import trains
-
-            self.train_plugin = trains.TrainPlugin(self)
-            self.train_plugin.create_widgets()
-            self.train_plugin.setup_polling()
-
-        if self.config["plugins"]["DHT22"]["enabled"]:
-            from alarmpi.plugins import dht22
-
-            self.dht22_plugin = dht22.DHT22Plugin(self)
-            self.dht22_plugin.create_widgets()
-            self.dht22_plugin.setup_polling()
-
-        # Set a higher row streches to the last used row to push elements
-        # closer together
-        nrows = self.main_window.right_plugin_grid.rowCount()
-        self.main_window.right_plugin_grid.setRowStretch(nrows - 1, 1)
+        for side, plugin in enabled_plugins(self.config):
+            self.main_window.add_plugin(plugin, side)
+            self.plugins.append(plugin)
+            plugin.start()
 
         # Setup settings window's checkbox initial values:
         tts_enabled = self.config["main"]["TTS"]
@@ -189,6 +172,10 @@ class Clock:
                 self.config["alsa"]["device_idx"],
                 self.config["alsa"]["volume"]
             )
+
+    def stop_plugins(self):
+        for plugin in self.plugins:
+            plugin.stop()
 
     def setup_button_handlers(self):
         """Setup button handlers for the main window and settings window."""
@@ -518,6 +505,7 @@ class Clock:
         """Button callback - Exit application. Close any existing media streams and the
         application itself.
         """
+        self.stop_plugins()
         self.radio.stop()
         self.alarm_player.media_play_thread.stop()
 

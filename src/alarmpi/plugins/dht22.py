@@ -1,38 +1,28 @@
+from functools import partial
+
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel
-from PyQt5.QtCore import QTimer, Qt
 
-from alarmpi.handlers import get_dht22_readings
+from alarmpi.clients.dht22 import DHT22Client
+from alarmpi.core.applugin import AlarmpiPlugin
 
 
-class DHT22Plugin:
+class DHT22Plugin(AlarmpiPlugin):
+    def __init__(self, config, parent=None):
+        super().__init__(
+            partial(DHT22Client, config), config["refresh_interval"], parent,
+        )
+        self.dht22_label = QLabel(self)
+        self.content_layout.addWidget(
+            self.dht22_label, alignment=Qt.AlignmentFlag.AlignRight,
+        )
+        self.poller.updated.connect(self.update_display)
 
-    def __init__(self, parent):
-        self.parent = parent
-        self.config_data = parent.config["plugins"]["DHT22"]
-        self.client = get_dht22_readings.DHT22Client(self.config_data)
+    def update_display(self, temperature: float):
+        self.error_label.clear()
+        self.dht22_label.setText(f"⌂ {round(temperature)}°C")
 
-    def create_widgets(self):
-        """Create and set QLabel for displaying temperature."""
-        self.dht22_label = QLabel(self.parent.main_window)
-        self.parent.main_window.right_plugin_grid.addWidget(self.dht22_label, 3, 0, Qt.AlignRight | Qt.AlignTop)
-
-    def setup_polling(self):
-        self.update_temperature()
-
-        refresh_interval_msec = self.config_data["refresh_interval"] * 1000
-        _timer = QTimer(self.parent.main_window)
-        _timer.timeout.connect(self.update_temperature)
-        _timer.start(refresh_interval_msec)
-
-    def update_temperature(self):
-        """Fetch new temperature readings from the handler."""
-        temperature = self.client.try_get_temperature()
-
-        # If initial call fails, display an error message.
-        # Otherwise do not set message on failed calls.
-        if temperature is None and not self.dht22_label.text():
+    def show_error(self, message):
+        if not self.dht22_label.text():
             self.dht22_label.setText("ERR")
-
-        elif temperature:
-            msg = f"⌂ {round(temperature)}°C"
-            self.dht22_label.setText(msg)
+        super().show_error(message)

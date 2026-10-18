@@ -5,6 +5,7 @@ import math
 from collections.abc import Callable
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from alarmpi.clients import DataSource
 
@@ -150,18 +151,33 @@ class PluginPoller(QObject):
             self.worker_thread.wait()
 
 
-class AlarmpiPlugin:
+class AlarmpiPlugin(QWidget):
+    """One self-contained sidebar widget with start/stop lifecycle."""
 
-    def __init__(self, parent):
-        self.retry_flag = False
-        self.parent = parent
+    def __init__(
+        self, create_source: Callable[[], DataSource], refresh_interval,
+        parent=None,
+    ):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout = QVBoxLayout()
+        layout.addLayout(self.content_layout)
+        self.error_label = QLabel(self)
+        self.error_label.setWordWrap(True)
+        layout.addWidget(self.error_label)
+        self.poller = PluginPoller(create_source, refresh_interval, self)
+        self.poller.failed.connect(self.show_error)
 
-    def run_with_retry(self, func, delay_sec=10):
-        """Run func with single retry after a delay."""
-        func()
-        if self.retry_flag:
-            self.retry_flag = False
-            timer = QTimer(self.parent.main_window)
-            timer.setSingleShot(True)
-            timer.timeout.connect(func)
-            timer.start(delay_sec*1000)
+    def show_error(self, message):
+        self.error_label.setText(f"! not refreshed - {message}")
+
+    def start(self):
+        self.poller.start()
+
+    def stop(self):
+        self.poller.stop()
+
+    def closeEvent(self, a0):
+        self.stop()
+        super().closeEvent(a0)
