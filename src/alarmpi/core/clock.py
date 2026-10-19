@@ -507,6 +507,7 @@ class Clock:
         """
         self.stop_plugins()
         self.radio.stop()
+        self.alarm_player.stop()
         self.alarm_player.media_play_thread.stop()
 
         # Ensure display is on and at full brightness

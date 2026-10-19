@@ -110,6 +110,12 @@ class AlarmBuilder:
         if self.config["radio"]["enabled"]:
             self.play_radio()
 
+    def stop(self):
+        """Stop currently playing TTS audio, if a client has been initialized."""
+        tts_client = getattr(self, "tts_client", None)
+        if tts_client is not None:
+            tts_client.stop()
+
     def generate_greeting(self):
         """Generate a greeting using get_greeting.py handler.
         Return:

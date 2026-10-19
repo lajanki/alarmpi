@@ -2,12 +2,11 @@ import pytest
 import os.path
 import requests
 import pydub
-import wave
 from unittest.mock import patch, Mock
 
 from freezegun import freeze_time
 
-from alarmpi.core import apconfig, alarm_builder
+from alarmpi.core import apconfig, alarm_builder, aptts
 from alarmpi.handlers import (
     get_google_translate_tts,
     get_festival_tts,
@@ -44,17 +43,21 @@ def test_default_TTS_client_chosen_when_none_set(dummy_alarm_builder):
     client = dummy_alarm_builder.get_tts_client()
     assert isinstance(client, get_festival_tts.FestivalTTSManager)
 
+
 def test_piper_tts_client_chosen(dummy_alarm_builder):
     dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
     dummy_alarm_builder.config["TTS"]["google_translate"]["enabled"] = False
     dummy_alarm_builder.config["TTS"]["festival"]["enabled"] = False
     dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = True
 
-    with patch("alarmpi.handlers.get_piper_tts.PiperVoice.load") as load_voice:
+    with patch(
+        "alarmpi.handlers.get_piper_tts.PiperVoice.load"
+    ) as load_voice:
         client = dummy_alarm_builder.get_tts_client()
 
     load_voice.assert_called_once_with("voices/en_US-lessac-medium.onnx")
     assert isinstance(client, get_piper_tts.PiperTTSManager)
+
 
 def test_piper_tts_setup_returns_audio_segment():
     voice = Mock()
@@ -66,7 +69,9 @@ def test_piper_tts_setup_returns_audio_segment():
         wav_file.writeframes(b"\x00\x00" * 100)
 
     voice.synthesize_wav.side_effect = synthesize_wav
-    with patch("alarmpi.handlers.get_piper_tts.PiperVoice.load", return_value=voice):
+    with patch(
+        "alarmpi.handlers.get_piper_tts.PiperVoice.load", return_value=voice
+    ):
         client = get_piper_tts.PiperTTSManager(
             config={"model_path": "voices/en_US-lessac-medium.onnx"}
         )
@@ -75,6 +80,49 @@ def test_piper_tts_setup_returns_audio_segment():
 
     assert isinstance(audio, pydub.AudioSegment)
     assert len(audio) > 0
+
+
+def test_tts_play_uses_managed_ffplay_process():
+    audio = Mock()
+    process = Mock()
+
+    with patch(
+        "alarmpi.core.aptts.pydub.playback.get_player_name", return_value="ffplay"
+    ):
+        with patch(
+            "alarmpi.core.aptts.subprocess.Popen", return_value=process
+        ) as popen:
+            aptts.AlarmpiTTS().play(audio)
+
+    audio.export.assert_called_once()
+    assert popen.call_args.args[0][:4] == [
+        "ffplay",
+        "-nodisp",
+        "-autoexit",
+        "-hide_banner",
+    ]
+    process.wait.assert_called_once_with()
+
+
+def test_tts_stop_terminates_active_ffplay_process():
+    process = Mock()
+    process.poll.return_value = None
+    tts_client = aptts.AlarmpiTTS()
+    tts_client._playback_process = process
+
+    tts_client.stop()
+
+    process.terminate.assert_called_once_with()
+    process.wait.assert_called_once_with(timeout=1)
+
+
+def test_alarm_builder_stop_stops_tts_client(dummy_alarm_builder):
+    dummy_alarm_builder.tts_client = Mock()
+
+    dummy_alarm_builder.stop()
+
+    dummy_alarm_builder.tts_client.stop.assert_called_once_with()
+
 
 def test_correct_content_parser_chosen(dummy_alarm_builder):
     """Given a content section, is the correct class chosen in get_content_parser_class?"""
