@@ -60,7 +60,7 @@ It's also possible to run the alarm without the GUI on a headless setup, see _Us
 ## Setup
 First, install required system packages with  
 ```bash
-sudo apt install qtbase5-dev ffmpeg festival vlc gpiod
+sudo apt install qtbase5-dev ffmpeg vlc gpiod
 ```
 These include the core Qt5 development package and some additional utilities for audio processing.
 

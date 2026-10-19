@@ -29,7 +29,7 @@ def test_validate_on_invalid_brightness(dummy_config):
 def test_validate_on_too_many_tts(dummy_config):
     """Does validate_config raise AssertionError on multiple enabled TTS engines?"""
     dummy_config.config["TTS"]["GCP"]["enabled"] = True
-    dummy_config.config["TTS"]["festival"]["enabled"] = True
+    dummy_config.config["TTS"]["Piper"]["enabled"] = True
     with pytest.raises(AssertionError):
         dummy_config.validate()
 

@@ -12,7 +12,7 @@ import pydub.playback
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from alarmpi.utils import utils
-from alarmpi.handlers import get_festival_tts, get_greeting
+from alarmpi.handlers import get_greeting
 
 
 event_logger = logging.getLogger("eventLogger")
@@ -141,10 +141,12 @@ class AlarmBuilder:
             auth = section.get("auth")
             client = class_(auth=auth, config=section)
 
-        # Default to Festival TTS
+        # Default to Piper TTS
         else:
-            event_logger.info("No TTS engine specified in config, using Festival")
-            client = get_festival_tts.FestivalTTSManager()
+            section = self.config["TTS"]["Piper"]
+            event_logger.info("No TTS engine specified in config, using Piper")
+            class_ = self.get_content_parser_class(section)
+            client = class_(auth=section.get("auth"), config=section)
 
         return client
 

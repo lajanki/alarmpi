@@ -43,9 +43,7 @@ Only one engine is can be enabled.
 | Engine | Summary |
 |--------|---------|
 | **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Most natural voice; needs a GCP project. **Authentication:** set `GOOGLE_APPLICATION_CREDENTIALS` to enable Application Default Credentials. Alternatively, configure service account to impersonate through `auth` section, but this still requires runtime user credentials to initiate the impersonation. **Cost:** Moderate usage likely falls under free tier — see [pricing](https://cloud.google.com/text-to-speech/pricing). |
-| **google_translate** | Unofficial Google Translate TTS; ~200 characters per request (pauses between chunks). May break without notice. |
 | **Piper** | Local neural TTS. Install with the project dependencies and download a voice model; no network access is needed to synthesize after setup. |
-| **festival** | [Festival](https://www.cstr.ed.ac.uk/projects/festival/): offline, most robotic. Fallback when `main.TTS` is true but no engine is enabled. |
 
 The sample configuration selects Piper and expects the voice at
 `voices/en_US-lessac-medium.onnx`. From the project root, download that voice
@@ -59,7 +57,7 @@ Set `TTS.Piper.model_path` to the `.onnx` file for a different voice. Review
 the voice's model card for its license and usage restrictions.
 
 > [!NOTE]
-> - Festival is used if no engine is enabled.
+> - Piper is used with its configured voice if no engine is enabled.
 > - If TTS is disabled a beeping sound effect will play on alarm.
 > - GCP: A single alarm generates around 1 100 characters falling well within the  WaveNet free tier
 

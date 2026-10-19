@@ -8,8 +8,6 @@ from freezegun import freeze_time
 
 from alarmpi.core import apconfig, alarm_builder, aptts
 from alarmpi.handlers import (
-    get_google_translate_tts,
-    get_festival_tts,
     get_bbc_news,
     get_gcp_tts,
     get_piper_tts,
@@ -25,29 +23,20 @@ def dummy_alarm_builder():
     config = apconfig.AlarmConfig(PATH_TO_CONFIG)
     return alarm_builder.AlarmBuilder(config)
 
-def test_enabled_tts_client_chosen(dummy_alarm_builder):
-    """Does get_tts_client choose the enabled client?"""
-    dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["google_translate"]["enabled"] = True
-    dummy_alarm_builder.config["TTS"]["festival"]["enabled"] = False
-
-    client = dummy_alarm_builder.get_tts_client()
-    assert isinstance(client, get_google_translate_tts.GoogleTranslateTTSManager)
-
 def test_default_TTS_client_chosen_when_none_set(dummy_alarm_builder):
-    """Is the Festival client chosen in get_tts_client when none is explicitly enaled?"""
+    """Is Piper selected when no engine is explicitly enabled?"""
     dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["google_translate"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["festival"]["enabled"] = False
+    dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = False
 
-    client = dummy_alarm_builder.get_tts_client()
-    assert isinstance(client, get_festival_tts.FestivalTTSManager)
+    with patch("alarmpi.handlers.get_piper_tts.PiperVoice.load") as load_voice:
+        client = dummy_alarm_builder.get_tts_client()
+
+    load_voice.assert_called_once_with("voices/en_US-lessac-medium.onnx")
+    assert isinstance(client, get_piper_tts.PiperTTSManager)
 
 
 def test_piper_tts_client_chosen(dummy_alarm_builder):
     dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["google_translate"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["festival"]["enabled"] = False
     dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = True
 
     with patch(
@@ -128,9 +117,7 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
     """Given a content section, is the correct class chosen in get_content_parser_class?"""
     handler_map = {
         "get_bbc_news.py": get_bbc_news.NewsParser,
-        "get_festival_tts.py": get_festival_tts.FestivalTTSManager,
         "get_gcp_tts.py": get_gcp_tts.GoogleCloudTTS,
-        "get_google_translate_tts.py": get_google_translate_tts.GoogleTranslateTTSManager,
         "get_piper_tts.py": get_piper_tts.PiperTTSManager,
         "get_greeting.py":  get_greeting.Greeting,
         "get_weather.py": get_weather.WeatherContent

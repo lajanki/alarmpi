@@ -34,14 +34,6 @@ TTS:
     handler: get_gcp_tts.py
     credentials: /path/to/key.json
 
-  google_translate:
-    enabled: true
-    handler: get_google_translate_tts.py
-
-  festival:
-    enabled: false
-    handler: get_festival_tts.py
-
   Piper:
     enabled: false
     handler: get_piper_tts.py

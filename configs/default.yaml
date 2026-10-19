@@ -43,18 +43,10 @@ TTS:
     # auth:
     #   service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
 
-  google_translate:
-    enabled: false
-    handler: get_google_translate_tts.py
-
   Piper:
     enabled: true
     handler: get_piper_tts.py
     model_path: voices/en_US-lessac-medium.onnx
-
-  festival:
-    enabled: false
-    handler: get_festival_tts.py
 
 radio:
   enabled: true
