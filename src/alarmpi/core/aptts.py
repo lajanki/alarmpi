@@ -6,8 +6,9 @@ class AlarmpiTTS:
     and an abstract method for initializing the actual TTS client.
     """
 
-    def __init__(self, auth: dict=None):
+    def __init__(self, auth: dict | None = None, config: dict | None = None):
         self.auth = auth
+        self.config = config or {}
 
     def setup(self, text):
         """Setup any TTS client and make requests to transform text as audio

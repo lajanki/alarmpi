@@ -42,6 +42,11 @@ TTS:
     enabled: false
     handler: get_festival_tts.py
 
+  Piper:
+    enabled: false
+    handler: get_piper_tts.py
+    model_path: voices/en_US-lessac-medium.onnx
+
 
 radio:
   enabled: true

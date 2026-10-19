@@ -1,6 +1,8 @@
 import pytest
 import os.path
 import requests
+import pydub
+import wave
 from unittest.mock import patch, Mock
 
 from freezegun import freeze_time
@@ -11,6 +13,7 @@ from alarmpi.handlers import (
     get_festival_tts,
     get_bbc_news,
     get_gcp_tts,
+    get_piper_tts,
     get_greeting,
     get_weather
 )
@@ -41,6 +44,38 @@ def test_default_TTS_client_chosen_when_none_set(dummy_alarm_builder):
     client = dummy_alarm_builder.get_tts_client()
     assert isinstance(client, get_festival_tts.FestivalTTSManager)
 
+def test_piper_tts_client_chosen(dummy_alarm_builder):
+    dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
+    dummy_alarm_builder.config["TTS"]["google_translate"]["enabled"] = False
+    dummy_alarm_builder.config["TTS"]["festival"]["enabled"] = False
+    dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = True
+
+    with patch("alarmpi.handlers.get_piper_tts.PiperVoice.load") as load_voice:
+        client = dummy_alarm_builder.get_tts_client()
+
+    load_voice.assert_called_once_with("voices/en_US-lessac-medium.onnx")
+    assert isinstance(client, get_piper_tts.PiperTTSManager)
+
+def test_piper_tts_setup_returns_audio_segment():
+    voice = Mock()
+
+    def synthesize_wav(text, wav_file):
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(22050)
+        wav_file.writeframes(b"\x00\x00" * 100)
+
+    voice.synthesize_wav.side_effect = synthesize_wav
+    with patch("alarmpi.handlers.get_piper_tts.PiperVoice.load", return_value=voice):
+        client = get_piper_tts.PiperTTSManager(
+            config={"model_path": "voices/en_US-lessac-medium.onnx"}
+        )
+
+    audio = client.setup("Hello")
+
+    assert isinstance(audio, pydub.AudioSegment)
+    assert len(audio) > 0
+
 def test_correct_content_parser_chosen(dummy_alarm_builder):
     """Given a content section, is the correct class chosen in get_content_parser_class?"""
     handler_map = {
@@ -48,6 +83,7 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
         "get_festival_tts.py": get_festival_tts.FestivalTTSManager,
         "get_gcp_tts.py": get_gcp_tts.GoogleCloudTTS,
         "get_google_translate_tts.py": get_google_translate_tts.GoogleTranslateTTSManager,
+        "get_piper_tts.py": get_piper_tts.PiperTTSManager,
         "get_greeting.py":  get_greeting.Greeting,
         "get_weather.py": get_weather.WeatherContent
     }

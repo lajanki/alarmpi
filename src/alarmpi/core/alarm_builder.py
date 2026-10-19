@@ -133,7 +133,7 @@ class AlarmBuilder:
             class_ = self.get_content_parser_class(section)
             # read the path to the keyfile if provided/applicable
             auth = section.get("auth")
-            client = class_(auth=auth)
+            client = class_(auth=auth, config=section)
 
         # Default to Festival TTS
         else:

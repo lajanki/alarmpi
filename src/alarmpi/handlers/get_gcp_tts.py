@@ -25,8 +25,8 @@ class GoogleCloudTTS(aptts.AlarmpiTTS):
     https://cloud.google.com/text-to-speech/pricing
     """
 
-    def __init__(self, auth: dict):
-        super().__init__()
+    def __init__(self, auth: dict | None, config: dict | None = None):
+        super().__init__(auth=auth, config=config)
         self.auth = auth
         self.client = self.get_client()
 

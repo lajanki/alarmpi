@@ -10,6 +10,7 @@ dependencies = [
     "google-cloud-texttospeech",
     "mutagen",
     "num2words",
+    "piper-tts",
     "pydub",
     "PyQt5",
     "pyqtspinner",
