@@ -221,6 +221,24 @@ class TestAlarmWorker():
         captured = capsys.readouterr()
         assert "09:03" in captured.out
 
+    def test_build_and_play_signals_emit_when_steps_fail(self):
+        config = apconfig.AlarmConfig(PATH_TO_CONFIG)
+        builder = alarm_builder.AlarmBuilder(config)
+        worker = clock.AlarmWorker(builder, task="build_and_play")
+        worker._build = Mock(side_effect=RuntimeError("synthesis failed"))
+        worker._play = Mock(side_effect=RuntimeError("beep failed"))
+        build_finished = Mock()
+        play_finished = Mock()
+        worker.build_finished_signal.connect(build_finished)
+        worker.play_finished_signal.connect(play_finished)
+        original_alarm_time = config["main"]["alarm_time"]
+
+        worker.run()
+
+        assert config["main"]["alarm_time"] == original_alarm_time
+        build_finished.assert_called_once_with(1)
+        play_finished.assert_called_once_with(1)
+
 
 #### RadioStreamer
 

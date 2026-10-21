@@ -57,8 +57,8 @@ Set `TTS.Piper.model_path` to the `.onnx` file for a different voice. Review
 the voice's model card for its license and usage restrictions.
 
 > [!NOTE]
-> - Piper is used with its configured voice if no engine is enabled.
-> - If TTS is disabled a beeping sound effect will play on alarm.
+> - If TTS is enabled but no engine is enabled, or setup/playback fails, the alarm falls back to a beep.
+> - If TTS is disabled, a beep plays when no wakeup track is enabled.
 > - GCP: A single alarm generates around 1 100 characters falling well within the  WaveNet free tier
 
 ---

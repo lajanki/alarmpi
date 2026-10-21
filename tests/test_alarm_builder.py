@@ -1,6 +1,6 @@
 import pytest
 import os.path
-import requests
+import subprocess
 import pydub
 from unittest.mock import patch, Mock
 
@@ -23,16 +23,11 @@ def dummy_alarm_builder():
     config = apconfig.AlarmConfig(PATH_TO_CONFIG)
     return alarm_builder.AlarmBuilder(config)
 
-def test_default_TTS_client_chosen_when_none_set(dummy_alarm_builder):
-    """Is Piper selected when no engine is explicitly enabled?"""
+def test_no_tts_client_chosen_when_none_set(dummy_alarm_builder):
     dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
     dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = False
 
-    with patch("alarmpi.handlers.get_piper_tts.PiperVoice.load") as load_voice:
-        client = dummy_alarm_builder.get_tts_client()
-
-    load_voice.assert_called_once_with("voices/en_US-lessac-medium.onnx")
-    assert isinstance(client, get_piper_tts.PiperTTSManager)
+    assert dummy_alarm_builder.get_tts_client() is None
 
 
 def test_piper_tts_client_chosen(dummy_alarm_builder):
@@ -74,6 +69,7 @@ def test_piper_tts_setup_returns_audio_segment():
 def test_tts_play_uses_managed_ffplay_process():
     audio = Mock()
     process = Mock()
+    process.wait.return_value = 0
 
     with patch(
         "alarmpi.core.aptts.pydub.playback.get_player_name", return_value="ffplay"
@@ -91,6 +87,19 @@ def test_tts_play_uses_managed_ffplay_process():
         "-hide_banner",
     ]
     process.wait.assert_called_once_with()
+
+
+def test_tts_play_raises_on_player_failure():
+    audio = Mock()
+    process = Mock()
+    process.wait.return_value = 1
+
+    with patch(
+        "alarmpi.core.aptts.pydub.playback.get_player_name", return_value="ffplay"
+    ):
+        with patch("alarmpi.core.aptts.subprocess.Popen", return_value=process):
+            with pytest.raises(subprocess.CalledProcessError):
+                aptts.AlarmpiTTS().play(audio)
 
 
 def test_tts_stop_terminates_active_ffplay_process():
@@ -129,13 +138,40 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
 
 @patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_tts_fails(mock_play_beep, dummy_alarm_builder):
-    """Is the beep played when a network error occurs?"""
+    """Is the beep played when TTS playback fails?"""
     dummy_alarm_builder.tts_client = Mock()
-    dummy_alarm_builder.tts_client.play.side_effect = requests.exceptions.HTTPError
+    dummy_alarm_builder.tts_client.play.side_effect = RuntimeError("player failed")
     dummy_alarm_builder.audio = Mock()
 
     dummy_alarm_builder.play()
     mock_play_beep.assert_called()
+
+
+@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
+def test_beep_played_when_tts_setup_fails(mock_play_beep, dummy_alarm_builder):
+    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
+    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+
+    with patch.object(dummy_alarm_builder, "get_tts_client", side_effect=RuntimeError):
+        dummy_alarm_builder.build()
+    dummy_alarm_builder.play()
+
+    mock_play_beep.assert_called_once()
+
+
+@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
+def test_beep_played_when_no_tts_engine_is_enabled(
+    mock_play_beep, dummy_alarm_builder
+):
+    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
+    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+    dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
+    dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = False
+
+    dummy_alarm_builder.build()
+    dummy_alarm_builder.play()
+
+    mock_play_beep.assert_called_once()
 
 @patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_tts_disabled(mock_play_beep, dummy_alarm_builder):

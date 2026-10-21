@@ -4,7 +4,6 @@ import inspect
 import logging
 import os
 import random
-import requests.exceptions
 import subprocess
 
 import pydub
@@ -31,6 +30,9 @@ class AlarmBuilder:
         Loop through the configuration file for enabled content sections
         and generate matching content.
         """
+        self.audio = None
+        self.tts_client = None
+
         # Initialize content with greeting
         contents = []
         contents.append(self.generate_greeting())
@@ -61,9 +63,14 @@ class AlarmBuilder:
 
         # Initialize TTS client with the generated content
         if self.config["main"]["TTS"]:
-            self.tts_client = self.get_tts_client()
-            content_text = "\n".join(contents)
-            self.audio = self.tts_client.setup(content_text)
+            try:
+                self.tts_client = self.get_tts_client()
+                if self.tts_client is not None:
+                    content_text = "\n".join(contents)
+                    self.audio = self.tts_client.setup(content_text)
+            except Exception:
+                event_logger.exception("TTS setup failed; alarm will use the beep")
+                self.tts_client = None
 
     def play(self):
         """Play an alarm.
@@ -85,13 +92,15 @@ class AlarmBuilder:
             self.media_play_thread.wait()
             self.media_play_thread.stop()
 
-        if self.audio:
+        if tts_enabled and self.audio is not None:
             try:
                 self.tts_client.play(self.audio)
-            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
-                event_logger.error(str(e))
-                event_logger.info("Defaulting to alarm sound effect")
+            except Exception:
+                event_logger.exception("TTS playback failed; using the beep")
                 AlarmBuilder.play_beep()
+        elif tts_enabled:
+            event_logger.warning("No TTS audio available; using the beep")
+            AlarmBuilder.play_beep()
 
         # Reset audio for next alarm
         self.audio = None
@@ -141,14 +150,10 @@ class AlarmBuilder:
             auth = section.get("auth")
             client = class_(auth=auth, config=section)
 
-        # Default to Piper TTS
-        else:
-            section = self.config["TTS"]["Piper"]
-            event_logger.info("No TTS engine specified in config, using Piper")
-            class_ = self.get_content_parser_class(section)
-            client = class_(auth=section.get("auth"), config=section)
+            return client
 
-        return client
+        event_logger.warning("No TTS engine enabled")
+        return None
 
     def get_content_parser_class(self, section):
         """Given config file section name, return the class matching the handler.

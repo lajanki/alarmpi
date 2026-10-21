@@ -13,6 +13,7 @@ class AlarmpiTTS:
         self.auth = auth
         self.config = config or {}
         self._playback_process = None
+        self._playback_stopped = False
 
     def setup(self, text):
         """Set up a TTS client and convert text to audio.
@@ -33,6 +34,7 @@ class AlarmpiTTS:
         player = pydub.playback.get_player_name()
         with tempfile.NamedTemporaryFile(suffix=".wav") as audio_file:
             audio.export(audio_file.name, format="wav")
+            self._playback_stopped = False
             process = subprocess.Popen(
                 [
                     player,
@@ -46,10 +48,13 @@ class AlarmpiTTS:
             )
             self._playback_process = process
             try:
-                process.wait()
+                return_code = process.wait()
+                if return_code and not self._playback_stopped:
+                    raise subprocess.CalledProcessError(return_code, process.args)
             finally:
                 if self._playback_process is process:
                     self._playback_process = None
+                self._playback_stopped = False
 
     def stop(self):
         """Stop any currently playing TTS audio."""
@@ -57,6 +62,7 @@ class AlarmpiTTS:
         if process is None or process.poll() is not None:
             return
 
+        self._playback_stopped = True
         process.terminate()
         try:
             process.wait(timeout=1)
