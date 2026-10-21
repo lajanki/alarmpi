@@ -111,9 +111,6 @@ class Clock:
             plugin.start()
 
         # Setup settings window's checkbox initial values:
-        tts_enabled = self.config["main"]["TTS"]
-        self.settings_window.readaloud_checkbox.setChecked(tts_enabled)
-
         nightmode_status = self.config["main"]["nighttime"].get("enabled", False)
         self.settings_window.nightmode_checkbox.setChecked(nightmode_status)
 
@@ -230,11 +227,6 @@ class Clock:
         alarm_clear_button.clicked.connect(self.clear_alarm)
 
         # Settings window checkbox callbacks
-        self.settings_window.readaloud_checkbox.stateChanged.connect(
-            lambda state: self.config.config["main"].update(
-                {"TTS": state == Qt.CheckState.Checked}
-            )
-        )
         self.settings_window.nightmode_checkbox.stateChanged.connect(
             lambda state: self.config.config["main"]["nighttime"].update(
                 {"enabled": state == Qt.CheckState.Checked}

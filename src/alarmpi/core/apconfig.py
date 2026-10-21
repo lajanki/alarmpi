@@ -55,8 +55,7 @@ class AlarmConfig:
 
     def validate(self):
         """Validate configuration file: checks that
-            * content and TTS sections have 'handler' key
-            * at most 1 TTS engine is enabled
+            * content sections and the selected main.TTS config have 'handler' key
             * low_brightness value is within range
             * default radio station url is known
             * nighttime values are in HH:MM
@@ -69,20 +68,13 @@ class AlarmConfig:
                 "Missing handler from content" + item
             )
 
-        for item in self["TTS"]:
-            assert "handler" in self["TTS"][item], "Missing handler from TTS" + item
+        tts_config = self["main"].get("TTS")
+        if tts_config is not None:
+            assert isinstance(tts_config, dict), "main.TTS must be a mapping or null"
+            assert "handler" in tts_config, "Missing handler from main.TTS"
 
-        n_tts_enabled = len(
-            [
-                self["TTS"][item]["enabled"]
-                for item in self["TTS"]
-                if self["TTS"][item]["enabled"]
-            ]
-        )
-        assert n_tts_enabled <= 1, "Multiple enabled TTS engines detected"
-
-        # If GCP TTS is enabled, check if ADC credentials are available.
-        if self["TTS"]["GCP"]["enabled"]:
+        # If GCP TTS is selected, check if ADC credentials are available.
+        if tts_config and tts_config["handler"] == "get_gcp_tts.py":
             import google.auth
             try:
                 google.auth.default()

@@ -14,7 +14,7 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 | **low_brightness** | Minimum brightness when toggling between max and low (9–255). *Raspberry Pi only.* |
 | **full_brightness_on_alarm** | When enabled, brightness goes to full when the alarm fires. Also in settings. *Raspberry Pi only.* |
 | **nighttime** | Night mode time range. While active: brightness stays low when an alarm is set; waking from blank starts a short timer to re-blank. Handy for checking the time at night without full brightness. Also in settings. *Raspberry Pi only.* |
-| **TTS** | Enable Text-to-Speech alarm content. A beeping sound effect is played if disabled. |
+| **TTS** | Selected TTS engine configuration. Set to `null` to disable speech. |
 | **end** | Closing line spoken by the TTS client after everything except the radio stream. |
 
 ---
@@ -36,29 +36,50 @@ Alarm speech content. Each block can point at a handler and pass extra options (
 
 ---
 
-#### `TTS` (engines)
+#### `main.TTS` (engine)
 
-Only one engine is can be enabled.
+Select a TTS engine using its handler. Engine-specific options go in the same
+mapping.
 
 | Engine | Summary |
 |--------|---------|
-| **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Most natural voice; needs a GCP project. **Authentication:** set `GOOGLE_APPLICATION_CREDENTIALS` to enable Application Default Credentials. Alternatively, configure service account to impersonate through `auth` section, but this still requires runtime user credentials to initiate the impersonation. **Cost:** Moderate usage likely falls under free tier — see [pricing](https://cloud.google.com/text-to-speech/pricing). |
+| **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Requires a GCP project. Set `GOOGLE_APPLICATION_CREDENTIALS` for Application Default Credentials, or configure service-account impersonation with `auth`. See [pricing](https://cloud.google.com/text-to-speech/pricing). |
 | **Piper** | Local neural TTS. Install with the project dependencies and download a voice model; no network access is needed to synthesize after setup. |
 
-The sample configuration selects Piper and expects the voice at
-`voices/en_US-lessac-medium.onnx`. From the project root, download that voice
-and its matching `.onnx.json` metadata file with:
+Piper example (also used in the default config):
+
+```yaml
+main:
+   TTS:
+      handler: get_piper_tts.py
+      model_path: voices/en_US-lessac-medium.onnx
+```
+
+From the project root, download the voice and its matching `.onnx.json`
+metadata file with:
 
 ```bash
 uv run python -m piper.download_voices en_US-lessac-medium --data-dir voices
 ```
 
-Set `TTS.Piper.model_path` to the `.onnx` file for a different voice. Review
-the voice's model card for its license and usage restrictions.
+Set `main.TTS.model_path` to the `.onnx` file for a different voice. Review the
+voice's model card for its license and usage restrictions.
+
+GCP example:
+
+```yaml
+main:
+   TTS:
+      handler: get_gcp_tts.py
+      # Optional service-account impersonation; otherwise use ADC through
+      # GOOGLE_APPLICATION_CREDENTIALS.
+      auth:
+         service_account: <account>@<project>.iam.gserviceaccount.com
+```
 
 > [!NOTE]
-> - If TTS is enabled but no engine is enabled, or setup/playback fails, the alarm falls back to a beep.
-> - If TTS is disabled, a beep plays when no wakeup track is enabled.
+> - Set `main.TTS: null` to disable speech. Without a wakeup track the alarm beeps.
+> - If TTS setup or playback fails, the alarm falls back to a beep.
 > - GCP: A single alarm generates around 1 100 characters falling well within the  WaveNet free tier
 
 ---

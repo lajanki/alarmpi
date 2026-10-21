@@ -6,7 +6,9 @@ main:
     enabled: true
     start: '22:00'    # time in HH:MM format
     end: '07:00'
-  TTS: true
+  TTS:
+    handler: get_piper_tts.py
+    model_path: voices/en_US-lessac-medium.onnx
   end: Thats all for now. Have a nice day.
 
 alsa:
@@ -28,25 +30,6 @@ content:
   BBC_news:
     enabled: true
     handler: get_bbc_news.py
-
-TTS:
-  # Google Cloud Text to Speech API.
-  # Note: This requires additional GCP project setup.
-  GCP:
-    enabled: false
-    handler: get_gcp_tts.py
-    # Optional service account to impersonate.
-    # Note: the recommended way to authenticate is to set
-    # GOOGLE_APPLICATION_CREDENTIALS instead to enable Application Default Credentials.
-    # Service account impersonation avoids static secrets but requires base
-    # runtime credentials to initiate the impersonation.
-    # auth:
-    #   service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
-
-  Piper:
-    enabled: true
-    handler: get_piper_tts.py
-    model_path: voices/en_US-lessac-medium.onnx
 
 radio:
   enabled: true

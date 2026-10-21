@@ -24,15 +24,16 @@ def dummy_alarm_builder():
     return alarm_builder.AlarmBuilder(config)
 
 def test_no_tts_client_chosen_when_none_set(dummy_alarm_builder):
-    dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = False
+    dummy_alarm_builder.config["main"]["TTS"] = None
 
     assert dummy_alarm_builder.get_tts_client() is None
 
 
 def test_piper_tts_client_chosen(dummy_alarm_builder):
-    dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = True
+    dummy_alarm_builder.config["main"]["TTS"] = {
+        "handler": "get_piper_tts.py",
+        "model_path": "voices/en_US-lessac-medium.onnx",
+    }
 
     with patch(
         "alarmpi.handlers.get_piper_tts.PiperVoice.load"
@@ -165,8 +166,7 @@ def test_beep_played_when_no_tts_engine_is_enabled(
 ):
     dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
     dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
-    dummy_alarm_builder.config["TTS"]["GCP"]["enabled"] = False
-    dummy_alarm_builder.config["TTS"]["Piper"]["enabled"] = False
+    dummy_alarm_builder.config["main"]["TTS"] = None
 
     dummy_alarm_builder.build()
     dummy_alarm_builder.play()
@@ -174,12 +174,30 @@ def test_beep_played_when_no_tts_engine_is_enabled(
     mock_play_beep.assert_called_once()
 
 @patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_beep_played_when_tts_disabled(mock_play_beep, dummy_alarm_builder):
-    """Is the beep played when TTS is disabled in the configuration?"""
-    dummy_alarm_builder.config["main"]["TTS"] = False
+def test_beep_played_when_no_engine_or_wakeup_track_enabled(
+    mock_play_beep, dummy_alarm_builder
+):
+    dummy_alarm_builder.config["main"]["TTS"] = None
+    dummy_alarm_builder.config["media"]["enabled"] = False
 
     dummy_alarm_builder.play()
     mock_play_beep.assert_called()
+
+
+def test_no_beep_when_no_engine_but_wakeup_track_enabled(dummy_alarm_builder):
+    dummy_alarm_builder.config["main"]["TTS"] = None
+    dummy_alarm_builder.config["media"]["enabled"] = True
+
+    with patch.object(dummy_alarm_builder.media_play_thread, "start") as start:
+        with patch.object(dummy_alarm_builder.media_play_thread, "wait"):
+            with patch.object(dummy_alarm_builder.media_play_thread, "stop"):
+                with patch(
+                    "alarmpi.core.alarm_builder.AlarmBuilder.play_beep"
+                ) as play_beep:
+                    dummy_alarm_builder.play()
+
+    start.assert_called_once()
+    play_beep.assert_not_called()
 
 def test_alarm_time_override(dummy_alarm_builder):
     """Is alarm time overridden when value specified in config?"""
@@ -200,7 +218,7 @@ def test_wakeup_song_played(mock_media_play_worker):
     PATH_TO_CONFIG = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
     config = apconfig.AlarmConfig(PATH_TO_CONFIG)
     builder = alarm_builder.AlarmBuilder(config)
-    builder.config["main"]["TTS"] = False
+    builder.config["main"]["TTS"] = None
     builder.config["media"]["enabled"] = True
 
     builder.play()

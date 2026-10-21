@@ -26,10 +26,9 @@ def test_validate_on_invalid_brightness(dummy_config):
     with pytest.raises(AssertionError):
         dummy_config.validate()
 
-def test_validate_on_too_many_tts(dummy_config):
-    """Does validate_config raise AssertionError on multiple enabled TTS engines?"""
-    dummy_config.config["TTS"]["GCP"]["enabled"] = True
-    dummy_config.config["TTS"]["Piper"]["enabled"] = True
+def test_validate_on_tts_missing_handler(dummy_config):
+    """Does validation reject a selected TTS config without a handler?"""
+    dummy_config.config["main"]["TTS"] = {"model_path": "voices/voice.onnx"}
     with pytest.raises(AssertionError):
         dummy_config.validate()
 

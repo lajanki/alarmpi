@@ -6,7 +6,9 @@ main:
     enabled: true
     start: '22:00'
     end: '07:00'
-  TTS: true
+  TTS:
+    handler: get_piper_tts.py
+    model_path: voices/en_US-lessac-medium.onnx
   end: Thats all for now. Have a nice day.
 
 alsa:
@@ -27,18 +29,6 @@ content:
   BBC_news:
     enabled: true
     handler: get_bbc_news.py
-
-TTS:
-  GCP:
-    enabled: false
-    handler: get_gcp_tts.py
-    credentials: /path/to/key.json
-
-  Piper:
-    enabled: false
-    handler: get_piper_tts.py
-    model_path: voices/en_US-lessac-medium.onnx
-
 
 radio:
   enabled: true

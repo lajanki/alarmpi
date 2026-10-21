@@ -61,8 +61,8 @@ class AlarmBuilder:
 
             event_logger.info("Set wakeup song to %s", wakeup_song_path)
 
-        # Initialize TTS client with the generated content
-        if self.config["main"]["TTS"]:
+        # Initialize the selected TTS engine with the generated content
+        if self.config["main"].get("TTS"):
             try:
                 self.tts_client = self.get_tts_client()
                 if self.tts_client is not None:
@@ -80,7 +80,7 @@ class AlarmBuilder:
         """
         # Play wakeup song if enabled
         wakeup_song_enabled = self.config["media"]["enabled"]
-        tts_enabled = self.config["main"]["TTS"]
+        tts_enabled = bool(self.config["main"].get("TTS"))
 
         # Default to a beepig alarm if nether TTS or wakeup song is enabled
         if not any([tts_enabled, wakeup_song_enabled]):
@@ -92,7 +92,7 @@ class AlarmBuilder:
             self.media_play_thread.wait()
             self.media_play_thread.stop()
 
-        if tts_enabled and self.audio is not None:
+        if tts_enabled and self.audio is not None and self.tts_client is not None:
             try:
                 self.tts_client.play(self.audio)
             except Exception:
@@ -135,25 +135,16 @@ class AlarmBuilder:
         return greeter.get()
 
     def get_tts_client(self):
-        """Determine which TTS engine to use based on the enabled tts sections
-        in the config file. First enabled section is used.
+        """Create the TTS engine selected in the main configuration section.
         """
-        # Search for the first enabled TTS engine and instantiate a corresponding class
-        section_wrapper = self.config.get_enabled_sections("TTS")
+        section = self.config["main"].get("TTS")
+        if not section:
+            event_logger.info("No TTS engine selected")
+            return None
 
-        if section_wrapper:
-            section = list(section_wrapper.values())[0]
-            event_logger.info("Using TTS handler %s", section["handler"])
-
-            class_ = self.get_content_parser_class(section)
-            # read the path to the keyfile if provided/applicable
-            auth = section.get("auth")
-            client = class_(auth=auth, config=section)
-
-            return client
-
-        event_logger.warning("No TTS engine enabled")
-        return None
+        event_logger.info("Using TTS handler %s", section["handler"])
+        class_ = self.get_content_parser_class(section)
+        return class_(auth=section.get("auth"), config=section)
 
     def get_content_parser_class(self, section):
         """Given config file section name, return the class matching the handler.
