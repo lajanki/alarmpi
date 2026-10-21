@@ -4,30 +4,26 @@
 # https://www.digitraffic.fi/rautatieliikenne/#liikennepaikan-saapuvat-ja-l%C3%A4htev%C3%A4t-junat-lukum%C3%A4%C3%A4r%C3%A4rajoitus
 
 import datetime
-import logging
 
 import requests
 from dateutil import tz
 
-from alarmpi.core import apcontent
+from alarmpi.clients import SourceError
 
 
-event_logger = logging.getLogger("eventLogger")
+class TrainClient:
 
+    def __init__(self, section_data):
+        self.section_data = section_data
 
-# While this feature is not part of the alarm, subclassing AlarmpiContent provides
-# access to the config.
-class TrainParser(apcontent.AlarmpiContent):
-
-    def run(self):
-        """Run the parser: fetch and format a list of next departures. Return
-        None if API call fails.
-        """
+    def fetch(self):
+        """Fetch and format the next departures."""
         api_response = self.fetch_daily_train_data()
-        if "error" in api_response:
-            return api_response
-
         return self.format_next_departures(api_response)
+
+    def close(self):
+        # No persistent resources to release.
+        return
 
     def format_next_departures(self, api_response):
         """Format a list of API response departures to a list of dicts
@@ -44,14 +40,17 @@ class TrainParser(apcontent.AlarmpiContent):
                 continue
 
             # Determine the timestamp key to be used for sorting:
-            # if an estimate exists, use it, otherwise use scheduled departure time
+            # Prefer an estimate over the scheduled departure time.
             sort_key = "scheduledTime"
-            scheduled_time_dt = self.utc_timestamp_to_local_datetime(row["scheduledTime"])
+            scheduled_time_dt = self.utc_timestamp_to_local_datetime(
+                row["scheduledTime"],
+            )
             live_estimate_time_dt = None
             if "liveEstimateTime" in row:
-                # Check that liveEstimateTime differs from scheduledTime by at least 1 minute
+                # Only display estimates differing by at least one minute.
                 live_estimate_time_dt = self.utc_timestamp_to_local_datetime(
-                    row["liveEstimateTime"])
+                    row["liveEstimateTime"],
+                )
                 td = live_estimate_time_dt - scheduled_time_dt
                 sort_key = "liveEstimateTime"
 
@@ -75,7 +74,10 @@ class TrainParser(apcontent.AlarmpiContent):
 
     def fetch_daily_train_data(self):
         """API call to get the next local arrivivals."""
-        URL = f"https://rata.digitraffic.fi/api/v1/live-trains/station/{self.section_data['station_code']}"
+        station = self.section_data["station_code"]
+        URL = (
+            f"https://rata.digitraffic.fi/api/v1/live-trains/station/{station}"
+        )
         params = {
             "arrived_trains": 1,  # API minimum
             "arriving_trains": 20,
@@ -84,19 +86,14 @@ class TrainParser(apcontent.AlarmpiContent):
 
         # Catch any network related errors from the request itself
         try:
-            r = requests.get(URL, params=params)
-        except Exception as e:
-            event_logger.error(str(e))
-            return {"error": {"message": str(e), "status_code": 503}}
-
-        # Catch errors from succesfully sent requests
-        if r.status_code != 200:
-            return {"error": {"message": r.text, "status_code": r.status_code}}
-
-        return r.json()
+            r = requests.get(URL, params=params, timeout=(5, 10))
+            r.raise_for_status()
+            return r.json()
+        except requests.RequestException as e:
+            raise SourceError(f"Train request failed: {e}") from e
 
     def filter_commuter_trains(self, response):
-        """Filter a list of API response trains to commuter trains heading towards Helsinki.
+        """Filter commuter trains heading towards Helsinki.
         Args:
             trains (list): list of API response trains
         Return:
@@ -111,7 +108,7 @@ class TrainParser(apcontent.AlarmpiContent):
         return filtered
 
     def get_local_departure_row(self, train):
-        """Given an API response train, return the DEPARTURE row of its timeTableRows
+        """Return the local DEPARTURE row of an API response train.
         Args:
             train (dict): a single train object from an API response
         Return:
@@ -153,8 +150,7 @@ class TrainParser(apcontent.AlarmpiContent):
         return utc.astimezone(tz_local)
 
     def msecs_until_datetime(self, d):
-        """Compute the number of milliseconds until input datetime. Input is
-        assumed to be a local, future timestamp as a timezone aware datetime instance.
+        """Compute milliseconds until a future, timezone-aware local datetime.
         """
         tz_local = tz.tzlocal()
         now = datetime.datetime.now(tz=tz_local)

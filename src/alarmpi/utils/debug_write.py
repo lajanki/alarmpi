@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import logging
+from pathlib import Path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
@@ -13,15 +14,15 @@ event_logger = logging.getLogger("eventLogger")
 class DateTimeEncoder(json.JSONEncoder):
     """Custom json encoder handling datetime objects."""
 
-    def default(self, z):
-        if isinstance(z, datetime):
-            return str(z)
-        return super().default(z)
+    def default(self, o):
+        if isinstance(o, datetime):
+            return str(o)
+        return super().default(o)
 
 
 def signal_handler(config, sig=None, frame=None):
     """Dump current program state to file."""
-    OUTPUT_FILE = "debug_info.txt"
+    OUTPUT_FILE = Path(__file__).resolve().parents[3] / "debug_info.txt"
     app = QApplication.instance()
 
     with open(OUTPUT_FILE, "w") as f:
@@ -44,7 +45,7 @@ def signal_handler(config, sig=None, frame=None):
         )
         for window in app.topLevelWidgets():
             f.write(
-                "\n{:<20} {:<10} {:<15} {:<15} {:<10}".format(
+                "\n{:<20} {:<10} {:<15} {:<15} {:<10}\n".format(
                     window.__class__.__name__,
                     window.isVisible(),
                     window.isFullScreen(),

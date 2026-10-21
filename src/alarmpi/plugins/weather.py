@@ -1,70 +1,47 @@
 from functools import partial
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtCore import Qt, QTimer
+
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QLabel
 
-from alarmpi.handlers import get_weather
-from alarmpi.core import applugin
+from alarmpi.clients.weather import OpenWeatherMapClient, WeatherReading
+from alarmpi.core.applugin import AlarmpiPlugin, plugin_logger
 
 
-class WeatherPlugin(applugin.AlarmpiPlugin):
+class WeatherPlugin(AlarmpiPlugin):
+    def __init__(self, config, refresh_interval, parent=None):
+        super().__init__(
+            partial(OpenWeatherMapClient, config, include_icon=True),
+            refresh_interval, parent,
+        )
+        self.error_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
-    def __init__(self, parent):
-        config_data = parent.config["content"]["openweathermap.org"]
-        self.parser = get_weather.OpenWeatherMapClient(config_data)
-        super().__init__(parent)
+        self.temperature_label = QLabel(self)
+        self.wind_label = QLabel(self)
+        self.icon_label = QLabel(self)
+        labels = (self.temperature_label, self.wind_label, self.icon_label)
+        for label in labels:
+            self.content_layout.addWidget(
+                label, alignment=Qt.AlignmentFlag.AlignRight,
+            )
+        self.poller.updated.connect(self.update_display)
 
-    def create_widgets(self):
-        """Create and set QLabels for displaying weather components."""
-        self.temperature_label = QLabel(self.parent.main_window)
-        self.wind_label = QLabel(self.parent.main_window)
-        self.icon_label = QLabel(self.parent.main_window)
-        self.error_label = QLabel(self.parent.main_window)
-
-        self.parent.main_window.right_plugin_grid.addWidget(self.temperature_label, 0, 0, Qt.AlignRight)
-        self.parent.main_window.right_plugin_grid.addWidget(self.wind_label, 1, 0, Qt.AlignRight)
-        self.parent.main_window.right_plugin_grid.addWidget(self.icon_label, 2, 0, Qt.AlignRight | Qt.AlignTop)
-        self.parent.main_window.right_plugin_grid.addWidget(self.error_label, 3, 0, Qt.AlignRight | Qt.AlignTop)
-
-    def setup_polling(self):
-        """Setup polling for updating the weather every 30 minutes."""
-        self.update_weather()
-
-        refresh_interval_msec = self.parent.config["plugins"]["openweathermap.org"]["refresh_interval"] * 1000
-        _timer = QTimer(self.parent.main_window)
-        weather_update_slot = partial(self.run_with_retry, func=self.update_weather, delay_sec=10)
-        _timer.timeout.connect(weather_update_slot)
-        _timer.start(refresh_interval_msec)
-
-    def update_weather(self):
-        """Update the weather labels on the main window. Makes an API request to
-        openweathermap.org for current temperature and windspeed.
-        """
-        self.retry_flag = False
-        weather = self.parser.fetch_and_format_weather()
-        pixmap = QPixmap()
-
-        if "error" in weather:
-            self.error_label.setText("<html><span style='font-size:14px'>! not refreshed - {}</span></html>".format(weather["error"]["status_code"]))
-            self.retry_flag = True
-            return
-
+    def update_display(self, weather: WeatherReading):
+        self.temperature_label.setText(f"{round(weather.temp)}°C")
+        self.wind_label.setText(f"{round(weather.wind_speed_ms)}m/s")
         self.error_label.clear()
-        temperature = weather["temp"]
-        wind = weather["wind_speed_ms"]
-
-        msg = f"{round(temperature)}°C"
-        self.temperature_label.setText(msg)
-
-        msg = f"{round(wind)}m/s"
-        self.wind_label.setText(msg)
-
-        # Weather icon is fetched via a separate API call which
-        # may fail regardless of the main call.
-        if weather["icon"] is None:
-            self.retry_flag = True
-            return
-
-        pixmap.loadFromData(weather["icon"])
-        pixmap = pixmap.scaledToWidth(64)
-        self.icon_label.setPixmap(pixmap)
+        if weather.icon_error:
+            self.show_error(weather.icon_error)
+            plugin_logger.warning("%s", weather.icon_error)
+            self.poller.schedule_retry()
+        elif weather.icon is not None:
+            pixmap = QPixmap()
+            if not pixmap.loadFromData(weather.icon):
+                message = "Invalid weather icon image"
+                self.show_error(message)
+                plugin_logger.error(message)
+                self.poller.schedule_retry()
+                return
+            self.icon_label.setPixmap(pixmap.scaledToWidth(64))

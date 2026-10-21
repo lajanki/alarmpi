@@ -8,7 +8,7 @@ from enum import Enum
 from functools import partial
 
 from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtCore import Qt, QTimer, QSize, pyqtSignal
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -46,6 +46,8 @@ logger = logging.getLogger("eventLogger")
 class AlarmWindow(QWidget):
     """QWidget subclass for main window."""
 
+    closing = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         # setup a dict for tracking control buttons
@@ -61,7 +63,7 @@ class AlarmWindow(QWidget):
         bottom_grid = QHBoxLayout()
         self.setAutoFillBackground(True)
 
-        # Left hand sidebar: subgrids for plugin (trains) and a small loader icon
+        # Sidebars host complete plugin widgets, not their individual labels.
         loader_indicator_grid = QVBoxLayout()
         loader_indicator = QLabel(self, objectName="loader_indicator")
         self.waiting_spinner = WaitingSpinner(
@@ -82,8 +84,10 @@ class AlarmWindow(QWidget):
         # Force a minimum width to keep left alignment from covering part of the spinner
         loader_indicator.setMinimumWidth(50)
 
-        self.left_plugin_grid = QVBoxLayout()
-        left_grid_container.addLayout(self.left_plugin_grid)
+        self.plugin_layouts = {"left": QVBoxLayout(), "right": QVBoxLayout()}
+        for layout in self.plugin_layouts.values():
+            layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        left_grid_container.addLayout(self.plugin_layouts["left"])
         left_grid_container.addLayout(loader_indicator_grid)
 
         # ** Center grid: current and alarm time displays **
@@ -126,18 +130,14 @@ class AlarmWindow(QWidget):
 
             bottom_grid.addWidget(button)
 
-        # Right hand sidebar: subgrids for plugin (weather) and a smaller radio play indicator
+        # Right sidebar and radio play indicator
         radio_station_grid = QGridLayout()
         self.radio_play_indicator = QLabel(self)
         radio_station_grid.addWidget(
             self.radio_play_indicator, 0, 0, Qt.AlignRight | Qt.AlignBottom
         )
 
-        # QGridLayout for setting weather/DHT22 plugin items to fixed rows
-        self.right_plugin_grid = (
-            QGridLayout()
-        ) 
-        right_grid_container.addLayout(self.right_plugin_grid)
+        right_grid_container.addLayout(self.plugin_layouts["right"])
         right_grid_container.addLayout(radio_station_grid)
 
         base_layout.addLayout(alarm_grid, 0, 1)
@@ -156,6 +156,13 @@ class AlarmWindow(QWidget):
         self.setWindowTitle("Alarmpi")
         self.setup_clock_polling()
         self.show()
+
+    def add_plugin(self, widget, side):
+        self.plugin_layouts[side].addWidget(widget)
+
+    def closeEvent(self, a0):
+        self.closing.emit()
+        super().closeEvent(a0)
 
     def setup_clock_polling(self):
         """Set the main LCD display to the current time and start polling for

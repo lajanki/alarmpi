@@ -9,7 +9,7 @@ class AlarmpiContent:
             section_data: a section of the configuration file defining this content
         """
         self.section_data = section_data
-        self.content = None
+        self.content: str | None = None
 
     def get(self):
         return self.content
