@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 
 import yaml
+from alarmpi.handlers import is_registered_handler
 from alarmpi.utils import rpi_utils
 from alarmpi.core.GUIWidgets import Status
 
@@ -67,14 +68,20 @@ class AlarmConfig:
             assert "handler" in self["content"][item], (
                 "Missing handler from content" + item
             )
+            assert is_registered_handler(
+                "content", self["content"][item]["handler"]
+            ), "Unknown content handler " + self["content"][item]["handler"]
 
         tts_config = self["main"].get("TTS")
         if tts_config is not None:
             assert isinstance(tts_config, dict), "main.TTS must be a mapping or null"
             assert "handler" in tts_config, "Missing handler from main.TTS"
+            assert is_registered_handler("tts", tts_config["handler"]), (
+                "Unknown TTS handler " + tts_config["handler"]
+            )
 
         # If GCP TTS is selected, check if ADC credentials are available.
-        if tts_config and tts_config["handler"] == "get_gcp_tts.py":
+        if tts_config and tts_config["handler"] == "gcp":
             import google.auth
             try:
                 google.auth.default()

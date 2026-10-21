@@ -7,7 +7,7 @@ main:
     start: '22:00'    # time in HH:MM format
     end: '07:00'
   TTS:
-    handler: get_piper_tts.py
+    handler: piper
     model_path: voices/en_US-lessac-medium.onnx
   end: Thats all for now. Have a nice day.
 
@@ -17,19 +17,19 @@ alsa:
 
 content:
   greeting:
-    handler: get_greeting.py
+    handler: greeting
     name: ""
 
   openweathermap.org:
     enabled: false
-    handler: get_weather.py
+    handler: weather
     credentials: /path/to/credentials       # file containing openweather API key, see https://openweathermap.org/appid
     city_id: null                           # http://bulk.openweathermap.org/sample/
     units: metric                           # metric|imperial
 
   BBC_news:
     enabled: true
-    handler: get_bbc_news.py
+    handler: bbc_news
 
 radio:
   enabled: true

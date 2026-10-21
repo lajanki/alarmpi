@@ -29,7 +29,7 @@ ALSA Audio output device configuration: playback device and initial volume. Use 
 
 Alarm speech content. Each block can point at a handler and pass extra options (for example OpenWeatherMap API keys).
 
-- **`handler`** — module under `src/alarmpi/handlers/` that builds that segment’s text.
+- **`handler`** — stable ID for a content handler registered in `src/alarmpi/handlers/__init__.py`.
 - **Other keys** — engine- or source-specific (e.g. OpenWeatherMap: [API keys](https://openweathermap.org/appid), [city IDs](http://bulk.openweathermap.org/sample/)).
 
 **Order:** Blocks are processed in YAML order; **greeting** should be processed first.
@@ -51,7 +51,7 @@ Piper example (also used in the default config):
 ```yaml
 main:
    TTS:
-      handler: get_piper_tts.py
+      handler: piper
       model_path: voices/en_US-lessac-medium.onnx
 ```
 
@@ -70,7 +70,7 @@ GCP example:
 ```yaml
 main:
    TTS:
-      handler: get_gcp_tts.py
+      handler: gcp
       # Optional service-account impersonation; otherwise use ADC through
       # GOOGLE_APPLICATION_CREDENTIALS.
       auth:
@@ -169,13 +169,11 @@ creating a widget or downloading a weather icon. Client, widget, and speech
 formatting remain separate responsibilities; no dynamic plugin discovery is
 required.
 
-### Adding a TTS engine
+### Adding a handler
 
-Adding a new TTS engine can be done similarly:
-
- 1. Write the handler. It should should inherit from `alarmpi.aptts.AlarmpiTTS` and implement the `play` method.
-
- 2. Add configuration section and enable it.
-
-  * The `credentials` key can be used to point to a file containg any credentials needed for the handler. The file path will be passed to the base class' initializer, see [../src/aptts.py](../src/aptts.py).
+Implement the handler in `src/alarmpi/handlers/`, then register its stable ID
+and class in the appropriate registry in `src/alarmpi/handlers/__init__.py`.
+Content handlers go in `content`; TTS handlers go in `tts` and inherit from
+`alarmpi.core.aptts.AlarmpiTTS`. Configs use the registry ID, not the Python
+module filename.
   

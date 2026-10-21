@@ -7,6 +7,7 @@ from unittest.mock import patch, Mock
 from freezegun import freeze_time
 
 from alarmpi.core import apconfig, alarm_builder, aptts
+from alarmpi.handlers import get_handler
 from alarmpi.handlers import (
     get_bbc_news,
     get_gcp_tts,
@@ -23,6 +24,20 @@ def dummy_alarm_builder():
     config = apconfig.AlarmConfig(PATH_TO_CONFIG)
     return alarm_builder.AlarmBuilder(config)
 
+
+def test_handler_registry_resolves_stable_ids():
+    assert get_handler("tts", "piper") is get_piper_tts.PiperTTSManager
+    assert get_handler("tts", "gcp") is get_gcp_tts.GoogleCloudTTS
+    assert get_handler("content", "greeting") is get_greeting.Greeting
+    assert get_handler("content", "bbc_news") is get_bbc_news.NewsParser
+    assert get_handler("content", "weather") is get_weather.WeatherContent
+
+
+def test_handler_registry_rejects_unknown_ids():
+    with pytest.raises(ValueError, match="Unknown tts handler: missing"):
+        get_handler("tts", "missing")
+
+
 def test_no_tts_client_chosen_when_none_set(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["TTS"] = None
 
@@ -31,7 +46,7 @@ def test_no_tts_client_chosen_when_none_set(dummy_alarm_builder):
 
 def test_piper_tts_client_chosen(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["TTS"] = {
-        "handler": "get_piper_tts.py",
+        "handler": "piper",
         "model_path": "voices/en_US-lessac-medium.onnx",
     }
 
@@ -124,18 +139,15 @@ def test_alarm_builder_stop_stops_tts_client(dummy_alarm_builder):
 
 
 def test_correct_content_parser_chosen(dummy_alarm_builder):
-    """Given a content section, is the correct class chosen in get_content_parser_class?"""
+    """Are content handler IDs resolved to their expected classes?"""
     handler_map = {
-        "get_bbc_news.py": get_bbc_news.NewsParser,
-        "get_gcp_tts.py": get_gcp_tts.GoogleCloudTTS,
-        "get_piper_tts.py": get_piper_tts.PiperTTSManager,
-        "get_greeting.py":  get_greeting.Greeting,
-        "get_weather.py": get_weather.WeatherContent
+        "bbc_news": get_bbc_news.NewsParser,
+        "greeting": get_greeting.Greeting,
+        "weather": get_weather.WeatherContent,
     }
 
-    for module, class_ in handler_map.items():
-        created_class = dummy_alarm_builder.get_content_parser_class({"handler": module})
-        assert created_class == class_
+    for handler_id, class_ in handler_map.items():
+        assert get_handler("content", handler_id) is class_
 
 @patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_tts_fails(mock_play_beep, dummy_alarm_builder):

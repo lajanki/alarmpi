@@ -32,6 +32,16 @@ def test_validate_on_tts_missing_handler(dummy_config):
     with pytest.raises(AssertionError):
         dummy_config.validate()
 
+def test_validate_on_unknown_tts_handler(dummy_config):
+    dummy_config.config["main"]["TTS"]["handler"] = "not_registered"
+    with pytest.raises(AssertionError, match="Unknown TTS handler"):
+        dummy_config.validate()
+
+def test_validate_on_unknown_content_handler(dummy_config):
+    dummy_config.config["content"]["BBC_news"]["handler"] = "not_registered"
+    with pytest.raises(AssertionError, match="Unknown content handler"):
+        dummy_config.validate()
+
 def test_read_content_sections(dummy_config):
     """Does get_enabled_sections return enabled 'content' section names?"""
     dummy_config.config["content"]["openweathermap.org"]["enabled"] = True

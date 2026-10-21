@@ -1,6 +1,4 @@
 import glob
-import importlib
-import inspect
 import logging
 import os
 import random
@@ -11,7 +9,7 @@ import pydub.playback
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from alarmpi.utils import utils
-from alarmpi.handlers import get_greeting
+from alarmpi.handlers import get_handler, get_greeting
 
 
 event_logger = logging.getLogger("eventLogger")
@@ -41,7 +39,9 @@ class AlarmBuilder:
         # content parser
         content_sections = self.config.get_enabled_sections("content")
         for section in content_sections:
-            class_ = self.get_content_parser_class(content_sections[section])
+            class_ = get_handler(
+                "content", content_sections[section]["handler"]
+            )
             parser = class_(content_sections[section])
 
             # build content
@@ -143,24 +143,8 @@ class AlarmBuilder:
             return None
 
         event_logger.info("Using TTS handler %s", section["handler"])
-        class_ = self.get_content_parser_class(section)
+        class_ = get_handler("tts", section["handler"])
         return class_(auth=section.get("auth"), config=section)
-
-    def get_content_parser_class(self, section):
-        """Given config file section name, return the class matching the handler.
-        
-        Args:
-            section (dict): config file section
-        """
-        # Use importlib to dynamically import the correct module within
-        # the 'handlers' package.
-        path_to_module = f"alarmpi.handlers.{section['handler'][:-3]}"
-        handler_module = importlib.import_module(path_to_module)
-
-        # Inspect the handler module for classes and return the first class.
-        class_ = inspect.getmembers(handler_module, inspect.isclass)[0][1]
-
-        return class_
 
     def play_radio(self):
         """Open a stream to the default radio station using cvlc."""
