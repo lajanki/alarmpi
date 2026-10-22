@@ -44,17 +44,23 @@ def test_validate_on_unknown_tts_handler(dummy_config):
     with pytest.raises(AssertionError, match="Unknown TTS handler"):
         dummy_config.validate()
 
-def test_validate_on_unknown_content_handler(dummy_config):
-    dummy_config.config["content"]["BBC_news"]["handler"] = "not_registered"
-    with pytest.raises(AssertionError, match="Unknown content handler"):
+def test_validate_on_unknown_content_section(dummy_config):
+    dummy_config.config["content"]["not_registered"] = {"enabled": True}
+    with pytest.raises(AssertionError, match="registered handler section"):
+        dummy_config.validate()
+
+def test_validate_rejects_content_handler_field(dummy_config):
+    dummy_config["content"]["greeting"]["handler"] = "greeting"
+
+    with pytest.raises(AssertionError, match="inferred from section name"):
         dummy_config.validate()
 
 def test_read_content_sections(dummy_config):
     """Does get_enabled_sections return enabled 'content' section names?"""
-    dummy_config.config["content"]["openweathermap.org"]["enabled"] = True
+    dummy_config.config["content"]["weather"]["enabled"] = True
 
     assert set(dummy_config.get_enabled_sections("content").keys()) == {
         "BBC_news",
         "farewell",
-        "openweathermap.org",
+        "weather",
     }

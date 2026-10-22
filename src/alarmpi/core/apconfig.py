@@ -66,16 +66,15 @@ class AlarmConfig:
 
         for item in self["content"]:
             section = self["content"][item]
-            has_handler = "handler" in section
             has_text = "text" in section
-            assert has_handler != has_text, (
-                "Content " + item + " must define exactly one of handler or text"
+            has_handler = is_registered_handler("content", item.lower())
+            assert "handler" not in section, (
+                "Content handler is inferred from section name: " + item
             )
-            if has_handler:
-                assert is_registered_handler(
-                    "content", section["handler"]
-                ), "Unknown content handler " + section["handler"]
-            else:
+            assert has_handler != has_text, (
+                "Content " + item + " must be a registered handler section or define text"
+            )
+            if has_text:
                 assert isinstance(section["text"], str), (
                     "Content text must be a string: " + item
                 )

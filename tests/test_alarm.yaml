@@ -15,19 +15,16 @@ alsa:
 
 content:
   greeting:
-    handler: greeting
     template: "Good {period}. It's {weekday} {month} {day_of_month}. The time is {time}.\n\n"
 
-  openweathermap.org:
+  weather:
     enabled: false
-    handler: weather
     credentials: /path/to/file.dat
     city_id: null
     units: metric
 
   BBC_news:
     enabled: true
-    handler: bbc_news
 
   farewell:
     enabled: true

@@ -38,6 +38,28 @@ def test_handler_registry_rejects_unknown_ids():
         get_handler("tts", "missing")
 
 
+def test_content_handler_is_inferred_from_section_name(dummy_alarm_builder):
+    class ContentParser:
+        def __init__(self, section_data):
+            self.section_data = section_data
+
+        def build(self):
+            pass
+
+        def get(self):
+            return "News content"
+
+    dummy_alarm_builder.config["main"]["TTS"] = None
+    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+
+    with patch(
+        "alarmpi.core.alarm_builder.get_handler", return_value=ContentParser
+    ) as handler_lookup:
+        dummy_alarm_builder.build()
+
+    handler_lookup.assert_called_once_with("content", "bbc_news")
+
+
 def test_no_tts_client_chosen_when_none_set(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["TTS"] = None
 

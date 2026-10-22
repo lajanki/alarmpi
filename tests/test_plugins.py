@@ -238,6 +238,18 @@ def test_disabled_plugins_do_not_import_hardware():
         assert list(enabled_plugins(config)) == []
 
 
+def test_weather_plugin_reads_weather_content_section():
+    config = apconfig.AlarmConfig("tests/test_alarm.yaml")
+    config["plugins"]["openweathermap.org"].update(
+        {"enabled": True, "refresh_interval": 60}
+    )
+
+    with patch("alarmpi.plugins.weather.WeatherPlugin") as weather_plugin:
+        assert list(enabled_plugins(config)) == [("right", weather_plugin.return_value)]
+
+    weather_plugin.assert_called_once_with(config["content"]["weather"], 60)
+
+
 def test_clock_mounts_starts_and_stops_plugins():
     config = apconfig.AlarmConfig("tests/test_alarm.yaml")
     with patch("alarmpi.core.clock.apconfig.AlarmConfig", return_value=config):

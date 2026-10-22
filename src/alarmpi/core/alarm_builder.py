@@ -44,7 +44,7 @@ class AlarmBuilder:
                 contents.append(section_data["text"])
                 continue
 
-            class_ = get_handler("content", section_data["handler"])
+            class_ = get_handler("content", section.lower())
             parser = class_(section_data)
 
             # build content

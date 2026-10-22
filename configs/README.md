@@ -29,14 +29,14 @@ current volume unchanged and initializes the slider from the device's level.
 
 #### `content`
 
-Alarm speech content. A block can use a registered handler or provide literal
-text directly. Handler blocks can pass extra options, such as OpenWeatherMap
-API keys.
+Alarm speech content. Registered handlers are selected by the content section
+name (`greeting`, `weather`, or `bbc_news`, case-insensitive). Handler sections
+can pass extra options, such as OpenWeatherMap API keys. Other sections can
+provide literal text directly.
 
-- **`handler`** — stable ID for a content handler registered in `src/alarmpi/handlers/__init__.py`.
 - **`text`** — literal content to speak without a handler; use this for simple
    lines such as the closing phrase.
-- **`template`** — for the `greeting` handler, the sentence to format with
+- **`template`** — for the `greeting` section, the sentence to format with
    `{period}`, `{name}`, `{weekday}`, `{month}`, `{day_of_month}`, and `{time}`.
    The name comes from the greeting config; date and period use the current
    date/time, and time uses `main.alarm_time`.
@@ -117,7 +117,7 @@ Extra data sources (disabled by default):
 |--------|----------------|
 | **HSL** | Commuter train departures (Finland). [DigiTraffic](https://www.digitraffic.fi/en/railway-traffic/). |
 | **DHT22** | Indoor temperature via a [DHT22](https://learn.adafruit.com/dht) sensor. |
-| **openweathermap.org** | Current outdoor temperature, wind, and weather icon. Uses credentials and city settings from `content.openweathermap.org`, even if its spoken content is disabled. |
+| **openweathermap.org** | Current outdoor temperature, wind, and weather icon. Uses credentials and city settings from `content.weather`, even if its spoken content is disabled. |
 
 Each plugin's `refresh_interval` is in seconds and must be positive. Plugins
 fetch data on background workers to avoid intefering with the main GUI thread.

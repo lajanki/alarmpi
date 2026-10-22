@@ -16,19 +16,16 @@ alsa:
 
 content:
   greeting:
-    handler: greeting
     template: "Good {period}, Émile. It's {weekday} {month} {day_of_month}. The time is {time}.\n\n"
 
-  openweathermap.org:
+  weather:
     enabled: false
-    handler: weather
     credentials: /path/to/credentials       # file containing openweather API key, see https://openweathermap.org/appid
     city_id: null                           # http://bulk.openweathermap.org/sample/
     units: metric                           # metric|imperial
 
-  BBC_news:
+  bbc_news:
     enabled: true
-    handler: bbc_news
 
   farewell:
     enabled: true
