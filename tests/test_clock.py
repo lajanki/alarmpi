@@ -47,14 +47,41 @@ def test_startup_volume_is_optional_and_slider_matches(
             "alarmpi.core.clock.utils.set_volume", side_effect=write_mixer_volume
         ) as set_volume:
             dummy_clock.setup()
+            assert dummy_clock.settings_window.volume_slider.value() == expected_volume
+            if startup_volume is None:
+                set_volume.assert_not_called()
+            else:
+                set_volume.assert_called_once_with(
+                    dummy_clock.config["alsa"]["device_idx"], startup_volume
+                )
+                dummy_clock.restore_volume()
+                assert mixer_volume[0] == initial_volume
 
-    assert dummy_clock.settings_window.volume_slider.value() == expected_volume
-    if startup_volume is None:
-        set_volume.assert_not_called()
-    else:
-        set_volume.assert_called_once_with(
-            dummy_clock.config["alsa"]["device_idx"], startup_volume
-        )
+def test_volume_is_restored_after_startup_override_and_slider_change():
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
+    dummy_clock.config["alsa"]["startup_volume"] = 70
+    mixer_volume = [46]
+
+    def read_mixer_volume(device_idx):
+        return mixer_volume[0]
+
+    def write_mixer_volume(device_idx, level):
+        mixer_volume[0] = level
+
+    with patch(
+        "alarmpi.core.clock.utils.get_volume", side_effect=read_mixer_volume
+    ):
+        with patch(
+            "alarmpi.core.clock.utils.set_volume", side_effect=write_mixer_volume
+        ):
+            dummy_clock.setup()
+            assert mixer_volume[0] == 70
+
+            dummy_clock.set_volume(85)
+            dummy_clock.restore_volume()
+
+    assert mixer_volume[0] == 46
+    assert not dummy_clock._volume_changed
 
 @pytest.fixture(scope="class")
 def dummy_clock():

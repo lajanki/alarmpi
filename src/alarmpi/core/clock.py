@@ -36,10 +36,13 @@ class Clock:
         app = QApplication.instance()
         if app is None:
             raise RuntimeError("Clock requires an existing QApplication")
+        self._original_volume = None
+        self._volume_changed = False
         self.main_window = GUIWidgets.AlarmWindow()
         self.plugins = []
         self.main_window.closing.connect(self.stop_plugins)
         app.aboutToQuit.connect(self.stop_plugins)
+        app.aboutToQuit.connect(self.restore_volume)
         self.settings_window = GUIWidgets.SettingsWindow(self.config)
         self.media_window = GUIWidgets.MediaPlayerWindow()
 
@@ -103,9 +106,20 @@ class Clock:
         """Setup various button handlers as well as weather and train data polling
         for the main windows side bar.
         """
+        try:
+            self._original_volume = utils.get_volume(self.config["alsa"]["device_idx"])
+        except AttributeError:
+            self._original_volume = None
+
         startup_volume = self.config["alsa"].get("startup_volume")
         if startup_volume is not None:
-            utils.set_volume(self.config["alsa"]["device_idx"], startup_volume)
+            if self._original_volume is None:
+                event_logger.warning(
+                    "Skipping startup volume override because the current ALSA volume could not be read"
+                )
+            else:
+                utils.set_volume(self.config["alsa"]["device_idx"], startup_volume)
+                self._volume_changed = True
 
         self.setup_button_handlers()
 
@@ -242,6 +256,8 @@ class Clock:
         # couldn't get a meaningful volume level (ie. invalid audio device configuration)
         try:
             volume_level = utils.get_volume(self.config["alsa"]["device_idx"])
+            if self._original_volume is None:
+                self._original_volume = volume_level
             self.settings_window.volume_slider.setValue(volume_level)
             self._update_volume_icon(volume_level)
         except AttributeError as e:
@@ -480,6 +496,7 @@ class Clock:
         utils.set_volume(
             self.config["alsa"]["device_idx"], value
         )
+        self._volume_changed = True
 
         self._update_volume_icon(value)
 
@@ -509,6 +526,19 @@ class Clock:
         rpi_utils.toggle_screen_state("on")
         rpi_utils.set_display_backlight_brightness(rpi_utils.HIGH_BRIGHTNESS)
         QApplication.instance().quit()
+
+    def restore_volume(self):
+        """Restore the ALSA level captured before Alarmpi changed it."""
+        if self._original_volume is None or not self._volume_changed:
+            return
+
+        try:
+            utils.set_volume(
+                self.config["alsa"]["device_idx"], self._original_volume
+            )
+            self._volume_changed = False
+        except Exception:
+            event_logger.exception("Couldn't restore ALSA volume on exit")
 
     def _nightmode_active(self):
         """Helper function for checking if nightmode is enabled and it is currently nighttime."""
