@@ -9,7 +9,6 @@ main:
   TTS:
     handler: piper
     model_path: voices/en_US-lessac-medium.onnx
-  end: Thats all for now. Have a nice day.
 
 alsa:
   device_idx: 1     # index of the ALSA audio device to use for output. See aplay -l for detected devices
@@ -18,7 +17,7 @@ alsa:
 content:
   greeting:
     handler: greeting
-    name: ""
+    template: "Good {period}, Émile. It's {weekday} {month} {day_of_month}. The time is {time}.\n\n"
 
   openweathermap.org:
     enabled: false
@@ -30,6 +29,10 @@ content:
   BBC_news:
     enabled: true
     handler: bbc_news
+
+  farewell:
+    enabled: true
+    text: Thats all for now. Have a nice day.
 
 radio:
   enabled: true

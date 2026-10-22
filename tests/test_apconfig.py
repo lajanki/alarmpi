@@ -46,4 +46,8 @@ def test_read_content_sections(dummy_config):
     """Does get_enabled_sections return enabled 'content' section names?"""
     dummy_config.config["content"]["openweathermap.org"]["enabled"] = True
 
-    assert set(dummy_config.get_enabled_sections("content").keys()) == {"BBC_news", "openweathermap.org"}
+    assert set(dummy_config.get_enabled_sections("content").keys()) == {
+        "BBC_news",
+        "farewell",
+        "openweathermap.org",
+    }

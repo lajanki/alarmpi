@@ -65,12 +65,20 @@ class AlarmConfig:
         """
 
         for item in self["content"]:
-            assert "handler" in self["content"][item], (
-                "Missing handler from content" + item
+            section = self["content"][item]
+            has_handler = "handler" in section
+            has_text = "text" in section
+            assert has_handler != has_text, (
+                "Content " + item + " must define exactly one of handler or text"
             )
-            assert is_registered_handler(
-                "content", self["content"][item]["handler"]
-            ), "Unknown content handler " + self["content"][item]["handler"]
+            if has_handler:
+                assert is_registered_handler(
+                    "content", section["handler"]
+                ), "Unknown content handler " + section["handler"]
+            else:
+                assert isinstance(section["text"], str), (
+                    "Content text must be a string: " + item
+                )
 
         tts_config = self["main"].get("TTS")
         if tts_config is not None:

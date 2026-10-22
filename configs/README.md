@@ -15,7 +15,6 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 | **full_brightness_on_alarm** | When enabled, brightness goes to full when the alarm fires. Also in settings. *Raspberry Pi only.* |
 | **nighttime** | Night mode time range. While active: brightness stays low when an alarm is set; waking from blank starts a short timer to re-blank. Handy for checking the time at night without full brightness. Also in settings. *Raspberry Pi only.* |
 | **TTS** | Selected TTS engine configuration. Set to `null` to disable speech. |
-| **end** | Closing line spoken by the TTS client after everything except the radio stream. |
 
 ---
 
@@ -27,12 +26,21 @@ ALSA Audio output device configuration: playback device and initial volume. Use 
 
 #### `content`
 
-Alarm speech content. Each block can point at a handler and pass extra options (for example OpenWeatherMap API keys).
+Alarm speech content. A block can use a registered handler or provide literal
+text directly. Handler blocks can pass extra options, such as OpenWeatherMap
+API keys.
 
 - **`handler`** — stable ID for a content handler registered in `src/alarmpi/handlers/__init__.py`.
+- **`text`** — literal content to speak without a handler; use this for simple
+   lines such as the closing phrase.
+- **`template`** — for the `greeting` handler, the sentence to format with
+   `{period}`, `{name}`, `{weekday}`, `{month}`, `{day_of_month}`, and `{time}`.
+   The name comes from the greeting config; date and period use the current
+   date/time, and time uses `main.alarm_time`.
 - **Other keys** — engine- or source-specific (e.g. OpenWeatherMap: [API keys](https://openweathermap.org/appid), [city IDs](http://bulk.openweathermap.org/sample/)).
 
-**Order:** Blocks are processed in YAML order; **greeting** should be processed first.
+**Order:** Blocks are processed in YAML order; keep **greeting** first and put
+**farewell** last.
 
 ---
 

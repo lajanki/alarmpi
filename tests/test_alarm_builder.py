@@ -44,6 +44,22 @@ def test_no_tts_client_chosen_when_none_set(dummy_alarm_builder):
     assert dummy_alarm_builder.get_tts_client() is None
 
 
+def test_farewell_text_is_appended_to_tts_content(dummy_alarm_builder):
+    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
+    dummy_alarm_builder.config["content"]["farewell"] = {
+        "enabled": True,
+        "text": "That's all for now.",
+    }
+    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+    dummy_alarm_builder.config["main"]["TTS"] = {"handler": "piper"}
+    tts_client = Mock()
+
+    with patch.object(dummy_alarm_builder, "get_tts_client", return_value=tts_client):
+        dummy_alarm_builder.build()
+
+    tts_client.setup.assert_called_once_with("Good morning\nThat's all for now.")
+
+
 def test_piper_tts_client_chosen(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["TTS"] = {
         "handler": "piper",
@@ -221,6 +237,17 @@ def test_alarm_time_without_override(dummy_alarm_builder):
     """Is alarm time current time?"""
     greeting = dummy_alarm_builder.generate_greeting()
     assert "the time is 07:02" in greeting.lower()
+
+def test_greeting_uses_configured_template(dummy_alarm_builder):
+    dummy_alarm_builder.config["main"]["alarm_time"] = "07:00"
+    dummy_alarm_builder.config["content"]["greeting"]["template"] = (
+        "{period}|{weekday}|{month}|{day_of_month}|{time}"
+    )
+
+    with freeze_time("2025-01-02 10:00:00"):
+        greeting = dummy_alarm_builder.generate_greeting()
+
+    assert greeting == "morning|Thursday|January|second|07:00 AM"
 
 @patch("alarmpi.core.alarm_builder.MediaPlayWorker")
 def test_wakeup_song_played(mock_media_play_worker):

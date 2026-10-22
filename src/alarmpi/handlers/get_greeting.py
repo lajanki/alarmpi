@@ -29,9 +29,8 @@ class Greeting(apcontent.AlarmpiContent):
         elif today.hour >= 12:
             period = "afternoon"
 
-        greeting = "Good {period}, {name}. It's {weekday} {month} {day_of_month}. The time is {time}.\n\n".format(
+        greeting = self.section_data["template"].format(
             period=period,
-            name=self.section_data["name"],
             weekday=current_weekday,
             month=current_month,
             day_of_month=day_of_month,

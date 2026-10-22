@@ -39,17 +39,17 @@ class AlarmBuilder:
         # content parser
         content_sections = self.config.get_enabled_sections("content")
         for section in content_sections:
-            class_ = get_handler(
-                "content", content_sections[section]["handler"]
-            )
-            parser = class_(content_sections[section])
+            section_data = content_sections[section]
+            if "text" in section_data:
+                contents.append(section_data["text"])
+                continue
+
+            class_ = get_handler("content", section_data["handler"])
+            parser = class_(section_data)
 
             # build content
             parser.build()
             contents.append(parser.get())
-
-        # Add ending phrase from the config file
-        contents.append(self.config["main"].get("end", ""))
 
         for section in contents:
             print(section)
