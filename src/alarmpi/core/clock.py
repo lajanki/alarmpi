@@ -103,6 +103,10 @@ class Clock:
         """Setup various button handlers as well as weather and train data polling
         for the main windows side bar.
         """
+        startup_volume = self.config["alsa"].get("startup_volume")
+        if startup_volume is not None:
+            utils.set_volume(self.config["alsa"]["device_idx"], startup_volume)
+
         self.setup_button_handlers()
 
         for side, plugin in enabled_plugins(self.config):
@@ -165,14 +169,6 @@ class Clock:
         # Ensure station set as default is set as current item
         default_station = self.config["radio"]["default"]
         self.settings_window.radio_station_combo_box.setCurrentText(default_station)
-
-        # Set audio volume level
-        if self.config["alsa"].get("volume"):
-            # No input validation; the amixer utility will ignore invalid volume levels
-            utils.set_volume(
-                self.config["alsa"]["device_idx"],
-                self.config["alsa"]["volume"]
-            )
 
     def stop_plugins(self):
         for plugin in self.plugins:
@@ -242,19 +238,19 @@ class Clock:
             )
         )
 
-        self.settings_window.volume_slider.valueChanged.connect(self.set_volume)
         # Set initial handle position and icon. Disable the slider if
         # couldn't get a meaningful volume level (ie. invalid audio device configuration)
         try:
             volume_level = utils.get_volume(self.config["alsa"]["device_idx"])
-            self.set_volume(volume_level)
             self.settings_window.volume_slider.setValue(volume_level)
+            self._update_volume_icon(volume_level)
         except AttributeError as e:
             self.settings_window.volume_slider.setEnabled(False)
-            self.set_volume(0)
+            self._update_volume_icon(0)
             event_logger.warning(
                 "Couldn't get volume level. Wrong device index value in configuration? Disabling volume slider."
             )
+        self.settings_window.volume_slider.valueChanged.connect(self.set_volume)
 
     def open_settings_window(self):
         """Button callback - settings window. Open the settings window and
@@ -485,6 +481,9 @@ class Clock:
             self.config["alsa"]["device_idx"], value
         )
 
+        self._update_volume_icon(value)
+
+    def _update_volume_icon(self, value):
         if value == 0:
             mode = "muted"
         elif value <= 25:

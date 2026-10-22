@@ -26,6 +26,13 @@ def test_validate_on_invalid_brightness(dummy_config):
     with pytest.raises(AssertionError):
         dummy_config.validate()
 
+@pytest.mark.parametrize("startup_volume", [-1, 101, "70", True])
+def test_validate_on_invalid_startup_volume(dummy_config, startup_volume):
+    dummy_config["alsa"]["startup_volume"] = startup_volume
+
+    with pytest.raises(AssertionError, match="startup_volume must be between 0 and 100"):
+        dummy_config.validate()
+
 def test_validate_on_tts_missing_handler(dummy_config):
     """Does validation reject a selected TTS config without a handler?"""
     dummy_config.config["main"]["TTS"] = {"model_path": "voices/voice.onnx"}

@@ -20,7 +20,10 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 
 #### `alsa`
 
-ALSA Audio output device configuration: playback device and initial volume. Use `aplay -l` to list devices.
+ALSA audio output device configuration. Use `aplay -l` to list devices.
+`startup_volume` is optional; when set to an integer from 0 to 100, it overrides
+the current ALSA volume on launch. When omitted or `null`, Alarmpi leaves the
+current volume unchanged and initializes the slider from the device's level.
 
 ---
 

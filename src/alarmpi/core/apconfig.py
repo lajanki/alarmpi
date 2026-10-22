@@ -101,6 +101,13 @@ class AlarmConfig:
             9 <= brightness <= 255
         ), "Invalid configuration: Brightness should be between 9 and 255"
 
+        startup_volume = self["alsa"].get("startup_volume")
+        assert startup_volume is None or (
+            isinstance(startup_volume, int)
+            and not isinstance(startup_volume, bool)
+            and 0 <= startup_volume <= 100
+        ), "Invalid configuration: startup_volume must be between 0 and 100"
+
         default = self["radio"]["default"]
         assert default in self["radio"]["urls"], (
             "No stream url for default radio station" + default

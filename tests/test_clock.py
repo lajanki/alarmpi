@@ -22,6 +22,40 @@ def create_clock():
     dummy_clock.setup()
     return dummy_clock
 
+@pytest.mark.parametrize(
+    "startup_volume,initial_volume,expected_volume",
+    [(None, 46, 46), (0, 46, 0), (70, 46, 70)],
+)
+def test_startup_volume_is_optional_and_slider_matches(
+    startup_volume, initial_volume, expected_volume
+):
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
+    if startup_volume is not None:
+        dummy_clock.config["alsa"]["startup_volume"] = startup_volume
+    mixer_volume = [initial_volume]
+
+    def read_mixer_volume(device_idx):
+        return mixer_volume[0]
+
+    def write_mixer_volume(device_idx, level):
+        mixer_volume[0] = level
+
+    with patch(
+        "alarmpi.core.clock.utils.get_volume", side_effect=read_mixer_volume
+    ):
+        with patch(
+            "alarmpi.core.clock.utils.set_volume", side_effect=write_mixer_volume
+        ) as set_volume:
+            dummy_clock.setup()
+
+    assert dummy_clock.settings_window.volume_slider.value() == expected_volume
+    if startup_volume is None:
+        set_volume.assert_not_called()
+    else:
+        set_volume.assert_called_once_with(
+            dummy_clock.config["alsa"]["device_idx"], startup_volume
+        )
+
 @pytest.fixture(scope="class")
 def dummy_clock():
     """Fixture for creating a Clock instance.
