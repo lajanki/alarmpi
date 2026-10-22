@@ -148,20 +148,35 @@ class TestClock():
         assert not dummy_clock.settings_window.control_buttons["Toggle\nBrightness"].isEnabled()
         assert not dummy_clock.main_window.control_buttons["Blank"].isEnabled()
 
-    @pytest.mark.parametrize("time,is_active", [
-        ("2021-07-30 09:00", False),
-        ("2021-07-30 23:20", True),
-        ("2021-07-30 00:32", False) # TODO: when initialized before start_dt, nighttime will be disabled
+    @pytest.mark.parametrize("time,start_dt,end_dt,is_active", [
+        (
+            "2021-07-30 09:00",
+            datetime(2021, 7, 30, 22, 0),
+            datetime(2021, 7, 31, 7, 0),
+            False,
+        ),
+        (
+            "2021-07-30 23:20",
+            datetime(2021, 7, 30, 22, 0),
+            datetime(2021, 7, 31, 7, 0),
+            True,
+        ),
+        (
+            "2021-07-30 00:32",
+            datetime(2021, 7, 29, 22, 0),
+            datetime(2021, 7, 30, 7, 0),
+            True,
+        ),
     ])
-    def test_nighttime_hours(self, time, is_active):
+    def test_nighttime_hours(self, time, start_dt, end_dt, is_active):
         """Test nighttime range when Clock is created with different times with respect to
         nighttime start time.
         """
         # Create a new clock instance with the time specified and check nighttime range values
         with freeze_time(time):
             dummy_clock = create_clock()
-            assert dummy_clock.config["main"]["nighttime"]["start_dt"] == datetime(2021, 7, 30, 22, 0)
-            assert dummy_clock.config["main"]["nighttime"]["end_dt"] == datetime(2021, 7, 31, 7, 0)
+            assert dummy_clock.config["main"]["nighttime"]["start_dt"] == start_dt
+            assert dummy_clock.config["main"]["nighttime"]["end_dt"] == end_dt
             assert dummy_clock._nightmode_active() == is_active
 
     def test_nightime_update(self):

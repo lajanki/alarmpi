@@ -124,6 +124,10 @@ class Clock:
         # Ensure start is before end
         if end_dt <= start_dt:
             end_dt = end_dt + timedelta(1)
+            # Before today's end means this overnight period started yesterday.
+            if datetime.now() <= end_dt - timedelta(1):
+                start_dt -= timedelta(1)
+                end_dt -= timedelta(1)
 
         self.config["main"]["nighttime"].update(
             {"start_dt": start_dt, "end_dt": end_dt}
