@@ -60,6 +60,28 @@ def test_farewell_text_is_appended_to_tts_content(dummy_alarm_builder):
     tts_client.setup.assert_called_once_with("Good morning\nThat's all for now.")
 
 
+def test_config_to_tts_content_pipeline():
+    config_path = os.path.join(os.path.dirname(__file__), "test_alarm.yaml")
+    config = apconfig.AlarmConfig(config_path)
+    config["content"]["BBC_news"]["enabled"] = False
+    builder = alarm_builder.AlarmBuilder(config)
+    expected_content = (
+        "Good morning. It's Thursday January second. The time is 07:02 AM.\n\n\n"
+        "Thats all for now. Have a nice day."
+    )
+
+    with freeze_time("2025-01-02 10:00:00"):
+        with patch(
+            "alarmpi.handlers.get_piper_tts.PiperVoice.load"
+        ) as load_voice:
+            with patch.object(get_piper_tts.PiperTTSManager, "setup") as setup:
+                builder.build()
+
+    load_voice.assert_called_once_with("voices/en_US-lessac-medium.onnx")
+    assert isinstance(builder.tts_client, get_piper_tts.PiperTTSManager)
+    setup.assert_called_once_with(expected_content)
+
+
 def test_piper_tts_client_chosen(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["TTS"] = {
         "handler": "piper",
