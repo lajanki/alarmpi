@@ -34,10 +34,10 @@ def test_startup_volume_is_optional_and_slider_matches(
         dummy_clock.config["alsa"]["startup_volume"] = startup_volume
     mixer_volume = [initial_volume]
 
-    def read_mixer_volume(device_idx):
+    def read_mixer_volume(card):
         return mixer_volume[0]
 
-    def write_mixer_volume(device_idx, level):
+    def write_mixer_volume(card, level):
         mixer_volume[0] = level
 
     with patch(
@@ -52,7 +52,7 @@ def test_startup_volume_is_optional_and_slider_matches(
                 set_volume.assert_not_called()
             else:
                 set_volume.assert_called_once_with(
-                    dummy_clock.config["alsa"]["device_idx"], startup_volume
+                    dummy_clock.config["alsa"]["card"], startup_volume
                 )
                 dummy_clock.restore_volume()
                 assert mixer_volume[0] == initial_volume
@@ -62,10 +62,10 @@ def test_volume_is_restored_after_startup_override_and_slider_change():
     dummy_clock.config["alsa"]["startup_volume"] = 70
     mixer_volume = [46]
 
-    def read_mixer_volume(device_idx):
+    def read_mixer_volume(card):
         return mixer_volume[0]
 
-    def write_mixer_volume(device_idx, level):
+    def write_mixer_volume(card, level):
         mixer_volume[0] = level
 
     with patch(

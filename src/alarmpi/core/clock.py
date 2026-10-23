@@ -107,7 +107,7 @@ class Clock:
         for the main windows side bar.
         """
         try:
-            self._original_volume = utils.get_volume(self.config["alsa"]["device_idx"])
+            self._original_volume = utils.get_volume(self.config["alsa"]["card"])
         except AttributeError:
             self._original_volume = None
 
@@ -118,7 +118,7 @@ class Clock:
                     "Skipping startup volume override because the current ALSA volume could not be read"
                 )
             else:
-                utils.set_volume(self.config["alsa"]["device_idx"], startup_volume)
+                utils.set_volume(self.config["alsa"]["card"], startup_volume)
                 self._volume_changed = True
 
         self.setup_button_handlers()
@@ -262,7 +262,7 @@ class Clock:
         # Set initial handle position and icon. Disable the slider if
         # couldn't get a meaningful volume level (ie. invalid audio device configuration)
         try:
-            volume_level = utils.get_volume(self.config["alsa"]["device_idx"])
+            volume_level = utils.get_volume(self.config["alsa"]["card"])
             if self._original_volume is None:
                 self._original_volume = volume_level
             self.settings_window.volume_slider.setValue(volume_level)
@@ -501,7 +501,7 @@ class Clock:
         update volume level icon.
         """
         utils.set_volume(
-            self.config["alsa"]["device_idx"], value
+            self.config["alsa"]["card"], value
         )
         self._volume_changed = True
 
@@ -548,7 +548,7 @@ class Clock:
 
         try:
             utils.set_volume(
-                self.config["alsa"]["device_idx"], self._original_volume
+                self.config["alsa"]["card"], self._original_volume
             )
             self._volume_changed = False
         except Exception:

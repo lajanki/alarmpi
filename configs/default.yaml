@@ -12,7 +12,7 @@ main:
     model_path: voices/en_US-lessac-medium.onnx
 
 alsa:
-  device_idx: 1     # index of the ALSA audio device to use for output. See aplay -l for detected devices
+  card: 1     # ALSA card number or quoted ID (prefer ID for stability); see aplay -l
   startup_volume: null  # Optional ALSA volume override on startup, 0 - 100
 
 content:

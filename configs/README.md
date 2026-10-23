@@ -20,9 +20,11 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 
 #### `alsa`
 
-ALSA audio output device configuration. Use `aplay -l` to list devices.
-`startup_volume` is optional; when set to an integer from 0 to 100, it overrides
-the current ALSA volume on launch. When omitted or `null`, Alarmpi leaves the
+ALSA output card selector passed to `amixer -c`. Use `aplay -l` to list cards.
+A card ID is preferred over a card number as ordering is not guaranteed accross boots.
+For example: `card: "PCH"`.
+`startup_volume` is an optional override for current ALSA volume on launch.
+When omitted or `null`, Alarmpi leaves the
 current volume unchanged and initializes the slider from the device's level.
 
 ---
