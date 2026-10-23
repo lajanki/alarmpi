@@ -82,13 +82,16 @@ class AlarmConfig:
         tts_config = self["main"].get("TTS")
         if tts_config is not None:
             assert isinstance(tts_config, dict), "main.TTS must be a mapping or null"
-            assert "handler" in tts_config, "Missing handler from main.TTS"
-            assert is_registered_handler("tts", tts_config["handler"]), (
-                "Unknown TTS handler " + tts_config["handler"]
-            )
+            tts_enabled = tts_config.get("enabled", True)
+            assert isinstance(tts_enabled, bool), "main.TTS.enabled must be a boolean"
+            tts_handler = tts_config.get("handler")
+            assert tts_handler is None or (
+                isinstance(tts_handler, str)
+                and is_registered_handler("tts", tts_handler)
+            ), "Unknown TTS handler " + str(tts_handler)
 
         # If GCP TTS is selected, check if ADC credentials are available.
-        if tts_config and tts_config["handler"] == "gcp":
+        if tts_config and tts_config.get("enabled", True) and tts_config.get("handler") == "gcp":
             import google.auth
             try:
                 google.auth.default()

@@ -287,6 +287,7 @@ class SettingsWindow(QWidget):
         # ** Left grid: misc settings **
         self.wakeup_song_checkbox = QCheckBox("Enable wakeup song", self)
         self.nightmode_checkbox = QCheckBox("Enable Nightmode", self)
+        self.tts_checkbox = QCheckBox("Enable TTS", self)
 
         # ComboBox for radio station, filled from config file
         self.radio_station_combo_box = QComboBox(self)
@@ -298,6 +299,7 @@ class SettingsWindow(QWidget):
 
         left_grid.addWidget(self.wakeup_song_checkbox, 0, 0)
         left_grid.addWidget(self.nightmode_checkbox, 1, 0)
+        left_grid.addWidget(self.tts_checkbox, 2, 0)
 
         volume_grid = QGridLayout()
         self.volume_slider = QSlider(Qt.Horizontal, self)
@@ -307,12 +309,12 @@ class SettingsWindow(QWidget):
 
         volume_grid.addWidget(self.volume_slider, 0, 0)
         volume_grid.addWidget(self.volume_label, 0, 1)
-        left_grid.addLayout(volume_grid, 2, 0)
+        left_grid.addLayout(volume_grid, 3, 0)
         self.volume_slider.setMaximumWidth(180)
         volume_grid.setHorizontalSpacing(20)
 
-        left_grid.addWidget(self.alarm_time_status_label, 3, 0)
-        left_grid.addWidget(self.radio_station_combo_box, 4, 0)
+        left_grid.addWidget(self.alarm_time_status_label, 4, 0)
+        left_grid.addWidget(self.radio_station_combo_box, 5, 0)
 
         # Add grids to base layout
         base_layout.addLayout(left_grid, 0, 0)

@@ -7,6 +7,7 @@ main:
     start: '22:00'
     end: '07:00'
   TTS:
+    enabled: true
     handler: piper
     model_path: voices/en_US-lessac-medium.onnx
 

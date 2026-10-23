@@ -83,6 +83,20 @@ def test_volume_is_restored_after_startup_override_and_slider_change():
     assert mixer_volume[0] == 46
     assert not dummy_clock._volume_changed
 
+def test_tts_checkbox_initializes_and_updates_config():
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
+    dummy_clock.config["main"]["TTS"]["enabled"] = False
+
+    with patch("alarmpi.core.clock.utils.get_volume", return_value=46):
+        with patch("alarmpi.core.clock.utils.set_volume"):
+            dummy_clock.setup()
+
+    assert not dummy_clock.settings_window.tts_checkbox.isChecked()
+
+    dummy_clock.settings_window.tts_checkbox.setChecked(True)
+
+    assert dummy_clock.config["main"]["TTS"]["enabled"] is True
+
 @pytest.fixture(scope="class")
 def dummy_clock():
     """Fixture for creating a Clock instance.

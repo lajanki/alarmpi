@@ -62,7 +62,7 @@ class AlarmBuilder:
             event_logger.info("Set wakeup song to %s", wakeup_song_path)
 
         # Initialize the selected TTS engine with the generated content
-        if self.config["main"].get("TTS"):
+        if self._tts_enabled():
             try:
                 self.tts_client = self.get_tts_client()
                 if self.tts_client is not None:
@@ -80,7 +80,7 @@ class AlarmBuilder:
         """
         # Play wakeup song if enabled
         wakeup_song_enabled = self.config["media"]["enabled"]
-        tts_enabled = bool(self.config["main"].get("TTS"))
+        tts_enabled = self._tts_enabled()
 
         # Default to a beepig alarm if nether TTS or wakeup song is enabled
         if not any([tts_enabled, wakeup_song_enabled]):
@@ -138,13 +138,21 @@ class AlarmBuilder:
         """Create the TTS engine selected in the main configuration section.
         """
         section = self.config["main"].get("TTS")
-        if not section:
-            event_logger.info("No TTS engine selected")
+        if not self._tts_enabled():
+            event_logger.info("TTS is disabled or no TTS engine is selected")
             return None
 
         event_logger.info("Using TTS handler %s", section["handler"])
         class_ = get_handler("tts", section["handler"])
         return class_(auth=section.get("auth"), config=section)
+
+    def _tts_enabled(self):
+        section = self.config["main"].get("TTS")
+        return bool(
+            section
+            and section.get("enabled", True)
+            and section.get("handler")
+        )
 
     def play_radio(self):
         """Open a stream to the default radio station using cvlc."""

@@ -245,6 +245,37 @@ def test_beep_played_when_no_tts_engine_is_enabled(
 
     mock_play_beep.assert_called_once()
 
+
+@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
+def test_disabled_tts_uses_beep_without_initializing_engine(
+    mock_play_beep, dummy_alarm_builder
+):
+    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
+    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+    dummy_alarm_builder.config["main"]["TTS"] = {
+        "enabled": False,
+        "handler": "piper",
+    }
+
+    with patch.object(dummy_alarm_builder, "get_tts_client") as get_tts_client:
+        dummy_alarm_builder.build()
+        dummy_alarm_builder.play()
+
+    get_tts_client.assert_not_called()
+    mock_play_beep.assert_called_once()
+
+
+@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
+def test_missing_tts_engine_uses_beep(mock_play_beep, dummy_alarm_builder):
+    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
+    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+    dummy_alarm_builder.config["main"]["TTS"] = {"enabled": True}
+
+    dummy_alarm_builder.build()
+    dummy_alarm_builder.play()
+
+    mock_play_beep.assert_called_once()
+
 @patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
 def test_beep_played_when_no_engine_or_wakeup_track_enabled(
     mock_play_beep, dummy_alarm_builder

@@ -34,9 +34,16 @@ def test_validate_on_invalid_startup_volume(dummy_config, startup_volume):
         dummy_config.validate()
 
 def test_validate_on_tts_missing_handler(dummy_config):
-    """Does validation reject a selected TTS config without a handler?"""
-    dummy_config.config["main"]["TTS"] = {"model_path": "voices/voice.onnx"}
-    with pytest.raises(AssertionError):
+    """Does validation allow TTS with no selected engine?"""
+    dummy_config.config["main"]["TTS"] = {"enabled": True}
+
+    assert dummy_config.validate()
+
+@pytest.mark.parametrize("enabled", ["true", 1, None])
+def test_validate_on_invalid_tts_enabled_value(dummy_config, enabled):
+    dummy_config["main"]["TTS"]["enabled"] = enabled
+
+    with pytest.raises(AssertionError, match="main.TTS.enabled must be a boolean"):
         dummy_config.validate()
 
 def test_validate_on_unknown_tts_handler(dummy_config):

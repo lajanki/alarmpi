@@ -14,7 +14,7 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 | **low_brightness** | Minimum brightness when toggling between max and low (9–255). *Raspberry Pi only.* |
 | **full_brightness_on_alarm** | When enabled, brightness goes to full when the alarm fires. Also in settings. *Raspberry Pi only.* |
 | **nighttime** | Night mode time range. While active: brightness stays low when an alarm is set; waking from blank starts a short timer to re-blank. Handy for checking the time at night without full brightness. Also in settings. *Raspberry Pi only.* |
-| **TTS** | Selected TTS engine configuration. Set to `null` to disable speech. |
+| **TTS** | Master speech switch and selected engine. Set `enabled: false` to use the beep instead of speech. The `handler` is optional; without a configured engine the alarm uses the beep. |
 
 ---
 

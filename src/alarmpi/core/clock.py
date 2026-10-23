@@ -135,6 +135,10 @@ class Clock:
         wakeup_song_status = self.config["media"].get("enabled", False)
         self.settings_window.wakeup_song_checkbox.setChecked(wakeup_song_status)
 
+        tts_config = self.config["main"].get("TTS")
+        tts_enabled = bool(tts_config and tts_config.get("enabled", True))
+        self.settings_window.tts_checkbox.setChecked(tts_enabled)
+
         # Store nighttime range as datetimes to config.
         start_dt = utils.time_str_to_dt(self.config["main"]["nighttime"]["start"])
         end_dt = utils.time_str_to_dt(self.config["main"]["nighttime"]["end"])
@@ -250,6 +254,9 @@ class Clock:
             lambda state: self.config.config["media"].update(
                 {"enabled": state == Qt.CheckState.Checked}
             )
+        )
+        self.settings_window.tts_checkbox.stateChanged.connect(
+            lambda state: self.set_tts_enabled(state == Qt.CheckState.Checked)
         )
 
         # Set initial handle position and icon. Disable the slider if
@@ -499,6 +506,13 @@ class Clock:
         self._volume_changed = True
 
         self._update_volume_icon(value)
+
+    def set_tts_enabled(self, enabled):
+        tts_config = self.config["main"].get("TTS")
+        if not isinstance(tts_config, dict):
+            tts_config = {}
+            self.config["main"]["TTS"] = tts_config
+        tts_config["enabled"] = enabled
 
     def _update_volume_icon(self, value):
         if value == 0:
