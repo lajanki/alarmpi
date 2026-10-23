@@ -1,9 +1,9 @@
 **__pycache__/
 venv/
+.venv/
 .vscode/
 voices/
 configs/dev_config.yaml
-*.mp3
 *.log
 logs/*.log
 debug_info.txt
