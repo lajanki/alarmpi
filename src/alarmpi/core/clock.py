@@ -4,6 +4,7 @@
 import logging
 import signal
 import subprocess
+from threading import Thread
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -52,6 +53,9 @@ class Clock:
         self.alarm_player.media_play_thread.play_finished_signal.connect(self.media_window.hide)
 
         self.radio = RadioStreamer(self.config["radio"])
+        self.radio_process_timer = QTimer(self.main_window)
+        self.radio_process_timer.setInterval(500)
+        self.radio_process_timer.timeout.connect(self._check_radio_process)
 
         # Setup a QThread and QTimers for building and playing the alarm
         self.alarm_play_thread = AlarmWorker(self.alarm_player, task="play")
@@ -394,9 +398,25 @@ class Clock:
         if button.isChecked():
             self.main_window._show_radio_play_indicator(current_radio_station)
             self.radio.play(url)
+            self.radio_process_timer.start()
         else:
+            self.radio_process_timer.stop()
             self.main_window._hide_radio_play_indicator()
             self.radio.stop()
+
+    def _check_radio_process(self):
+        """Reset radio UI state when the VLC process exits."""
+        exit_code = self.radio.poll()
+        if exit_code is None:
+            return
+
+        self.radio_process_timer.stop()
+        self.main_window.control_buttons["Radio"].setChecked(False)
+        self.main_window._hide_radio_play_indicator()
+        if exit_code:
+            event_logger.warning("Radio stream process exited with status %s", exit_code)
+        else:
+            event_logger.info("Radio stream process exited")
 
     def play_alarm(self):
         """Alarm timer callback: Play a previously built alarm.
@@ -659,11 +679,22 @@ class RadioStreamer:
 
     def __init__(self, config):
         self.process = None
+        self.output_thread = None
         self.config = config
 
     def is_playing(self):
         """Check if a radio stream is currently running."""
         return self.process is not None
+
+    def poll(self):
+        """Return the exit status and clear the process once it has exited."""
+        if self.process is None:
+            return None
+
+        exit_code = self.process.poll()
+        if exit_code is not None:
+            self.process = None
+        return exit_code
 
     def play(self, url):
         """Open a radio stream as a child process. The stream will continue to run
@@ -673,18 +704,51 @@ class RadioStreamer:
         cmd = f"/usr/bin/cvlc {url} {args}"
         event_logger.info("Running %s", cmd)
 
-        # Run the command via Popen directly to open the stream as an independent child
-        # process. This way we do not wait for the stream to finish.
-        # Output is captured (truncated) to file.
-        with open("logs/radio.log", "w") as f:
-            self.process = subprocess.Popen(
-                cmd.split(), stdout=f, stderr=subprocess.STDOUT
-            )
+        self.process = subprocess.Popen(
+            cmd.split(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        self.output_thread = Thread(
+            target=self._monitor_output, args=(self.process,), daemon=True
+        )
+        self.output_thread.start()
+
+    def _monitor_output(self, process):
+        """Log VLC output and terminate the process when stream input fails."""
+        if process.stdout is None:
+            return
+
+        input_failed = False
+        with open("logs/radio.log", "w") as log_file:
+            for line in process.stdout:
+                log_file.write(line)
+                log_file.flush()
+                lowered_line = line.lower()
+                if not input_failed and any(
+                    message in lowered_line
+                    for message in (
+                        "access stream error:",
+                        "your input can't be opened",
+                        "unable to open the mrl",
+                    )
+                ):
+                    input_failed = True
+                    event_logger.error("Radio stream failed: %s", line.strip())
+                    try:
+                        process.terminate()
+                    except ProcessLookupError:
+                        pass
 
     def stop(self):
         """Terminate the running cvlc process."""
-        try:
-            self.process.terminate()
-            self.process = None
-        except AttributeError:
+        process = self.process
+        self.process = None
+        if process is None:
             return
+
+        try:
+            process.terminate()
+        except ProcessLookupError:
+            pass

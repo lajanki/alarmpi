@@ -1,7 +1,7 @@
 import pytest
 import os.path
 import subprocess
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, mock_open
 from datetime import datetime
 
 from freezegun import freeze_time
@@ -288,6 +288,23 @@ class TestClock():
         dummy_clock.media_window.button.click()
         assert dummy_clock.media_window.isHidden()
 
+    def test_radio_process_exit_resets_radio_ui(self):
+        dummy_clock = create_clock()
+        process = Mock()
+        process.poll.return_value = 1
+        dummy_clock.radio.process = process
+        radio_button = dummy_clock.main_window.control_buttons["Radio"]
+        radio_button.setChecked(True)
+        dummy_clock.main_window._show_radio_play_indicator("Radio Suomi")
+        dummy_clock.radio_process_timer.start()
+
+        dummy_clock._check_radio_process()
+
+        assert dummy_clock.radio.process is None
+        assert not radio_button.isChecked()
+        assert dummy_clock.main_window.radio_play_indicator.text() == ""
+        assert not dummy_clock.radio_process_timer.isActive()
+
 
 #### AlarmWorker
 
@@ -352,8 +369,38 @@ class TestRadioStreamer():
 
     def test_stop_clears_active_process(self, dummy_radio):
         """Does stop clear the list of running processes?"""
-        subprocess.Popen = Mock()
-        dummy_radio.play("https://foo.bar")
+        process = Mock(stdout=iter(()))
+        with patch("builtins.open", mock_open()):
+            with patch(
+                "alarmpi.core.clock.subprocess.Popen", return_value=process
+            ):
+                dummy_radio.play("https://foo.bar")
+                dummy_radio.output_thread.join(timeout=1)
+                dummy_radio.stop()
+
+        assert dummy_radio.process is None
+
+    def test_stream_input_error_terminates_vlc(self, dummy_radio):
+        process = Mock(
+            stdout=iter(
+                [
+                    "[access] access stream error: HTTP 404 error\n",
+                    "[main] Your input can't be opened\n",
+                ]
+            )
+        )
+
+        with patch("builtins.open", mock_open()):
+            dummy_radio._monitor_output(process)
+
+        process.terminate.assert_called_once_with()
+
+    def test_stop_handles_process_that_already_exited(self, dummy_radio):
+        process = Mock()
+        process.terminate.side_effect = ProcessLookupError
+        dummy_radio.process = process
+
         dummy_radio.stop()
 
+        process.terminate.assert_called_once_with()
         assert dummy_radio.process is None
