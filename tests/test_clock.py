@@ -5,6 +5,9 @@ from unittest.mock import patch, Mock, mock_open
 from datetime import datetime
 
 from freezegun import freeze_time
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtTest import QTest
 
 from alarmpi.core import clock, apconfig, alarm_builder
 
@@ -305,6 +308,67 @@ class TestClock():
         assert dummy_clock.main_window.radio_play_indicator.text() == ""
         assert not dummy_clock.radio_process_timer.isActive()
 
+    @pytest.mark.parametrize(
+        "screen_state,playing,expected_skips",
+        [("on", True, 4), ("off", True, 0), ("on", False, 0)],
+    )
+    def test_central_taps_skip_only_during_playback_on_awake_screen(
+        self, screen_state, playing, expected_skips
+    ):
+        dummy_clock = clock.Clock(PATH_TO_CONFIG)
+        dummy_clock.config["radio"]["enabled"] = False
+        with patch.object(dummy_clock.alarm_player, "skip_current") as skip_current:
+            with patch("alarmpi.core.clock.utils.get_volume", return_value=46):
+                with patch("alarmpi.core.clock.utils.set_volume"):
+                    dummy_clock.setup()
+
+            window = dummy_clock.main_window
+            QApplication.instance().processEvents()
+            clock_geometry = window.clock_lcd.geometry()
+            date_geometry = window.date_label.geometry()
+            assert window.skip_outline.isHidden()
+            if playing:
+                dummy_clock.show_skip_area()
+                assert window.skip_outline.geometry() == window.alarm_grid.geometry()
+
+            with patch(
+                "alarmpi.core.clock.rpi_utils.get_and_set_screen_state",
+                return_value=screen_state,
+            ) as wake_screen:
+                for display in (window.date_label, window.clock_lcd, window.alarm_time_lcd):
+                    QTest.mouseClick(display, Qt.LeftButton)
+                QTest.mouseClick(
+                    window, Qt.LeftButton,
+                    pos=window.alarm_grid.geometry().bottomLeft() + QPoint(2, -2),
+                )
+                QTest.mouseClick(window, Qt.LeftButton, pos=QPoint(2, 2))
+
+            assert skip_current.call_count == expected_skips
+            assert wake_screen.call_count == 5
+            assert window.clock_lcd.geometry() == clock_geometry
+            assert window.date_label.geometry() == date_geometry
+
+        dummy_clock.finish_playing_alarm()
+        QApplication.instance().processEvents()
+        assert window.skip_outline.isHidden()
+        window.close()
+
+    def test_desktop_central_tap_stops_current_audio(self):
+        dummy_clock = clock.Clock(PATH_TO_CONFIG)
+        with patch("alarmpi.core.clock.utils.get_volume", return_value=46):
+            dummy_clock.setup()
+        dummy_clock.alarm_player.audio_player = Mock()
+        QApplication.instance().processEvents()
+        dummy_clock.show_skip_area()
+
+        try:
+            with patch.object(clock.rpi_utils, "IS_RASPBERRY_PI", False):
+                QTest.mouseClick(dummy_clock.main_window.clock_lcd, Qt.LeftButton)
+
+            dummy_clock.alarm_player.audio_player.stop.assert_called_once_with()
+        finally:
+            dummy_clock.main_window.close()
+
 
 #### AlarmWorker
 
@@ -336,6 +400,8 @@ class TestAlarmWorker():
         worker._play = Mock(side_effect=RuntimeError("beep failed"))
         build_finished = Mock()
         play_finished = Mock()
+        play_started = Mock()
+        worker.play_started_signal.connect(play_started)
         worker.build_finished_signal.connect(build_finished)
         worker.play_finished_signal.connect(play_finished)
         original_alarm_time = config["main"]["alarm_time"]
@@ -343,6 +409,7 @@ class TestAlarmWorker():
         worker.run()
 
         assert config["main"]["alarm_time"] == original_alarm_time
+        play_started.assert_called_once_with()
         build_finished.assert_called_once_with(1)
         play_finished.assert_called_once_with(1)
 

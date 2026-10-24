@@ -2,7 +2,7 @@ import pytest
 import os.path
 import subprocess
 import pydub
-from unittest.mock import patch, Mock
+from unittest.mock import call, patch, Mock
 
 from freezegun import freeze_time
 
@@ -75,11 +75,19 @@ def test_farewell_text_is_appended_to_tts_content(dummy_alarm_builder):
     dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
     dummy_alarm_builder.config["main"]["TTS"] = {"handler": "piper"}
     tts_client = Mock()
+    tts_client.setup.return_value = pydub.AudioSegment.silent(duration=100)
 
     with patch.object(dummy_alarm_builder, "get_tts_client", return_value=tts_client):
         dummy_alarm_builder.build()
 
-    tts_client.setup.assert_called_once_with("Good morning\nThat's all for now.")
+    assert tts_client.setup.call_args_list == [
+        call("Good morning"),
+        call("That's all for now."),
+    ]
+    assert [name for name, _ in dummy_alarm_builder.audio_segments] == [
+        "greeting",
+        "farewell",
+    ]
 
 
 def test_config_to_tts_content_pipeline():
@@ -97,11 +105,17 @@ def test_config_to_tts_content_pipeline():
             "alarmpi.handlers.get_piper_tts.PiperVoice.load"
         ) as load_voice:
             with patch.object(get_piper_tts.PiperTTSManager, "setup") as setup:
+                setup.return_value = pydub.AudioSegment.silent(duration=100)
                 builder.build()
 
     load_voice.assert_called_once_with("voices/en_US-lessac-medium.onnx")
     assert isinstance(builder.tts_client, get_piper_tts.PiperTTSManager)
-    setup.assert_called_once_with(expected_content)
+    assert setup.call_args_list == [
+        call("Good morning. It's Thursday January second. The time is 07:02 AM.\n\n"),
+        call("Thats all for now. Have a nice day."),
+    ]
+    assert len(builder.audio_segments) == 2
+    assert len(builder.audio) > sum(len(audio) for _, audio in builder.audio_segments)
 
 
 def test_piper_tts_client_chosen(dummy_alarm_builder):
@@ -190,12 +204,36 @@ def test_tts_stop_terminates_active_ffplay_process():
     process.wait.assert_called_once_with(timeout=1)
 
 
+def test_tts_stop_handles_process_that_exited_before_terminate():
+    process = Mock()
+    process.poll.return_value = None
+    process.terminate.side_effect = ProcessLookupError
+    tts_client = aptts.AlarmpiTTS()
+    tts_client._playback_process = process
+
+    tts_client.stop()
+
+    process.terminate.assert_called_once_with()
+
+
 def test_alarm_builder_stop_stops_tts_client(dummy_alarm_builder):
-    dummy_alarm_builder.tts_client = Mock()
+    dummy_alarm_builder.audio_player = Mock()
 
     dummy_alarm_builder.stop()
 
-    dummy_alarm_builder.tts_client.stop.assert_called_once_with()
+    dummy_alarm_builder.audio_player.stop.assert_called_once_with()
+
+
+def test_media_play_worker_stop_terminates_its_process():
+    worker = alarm_builder.MediaPlayWorker()
+    process = Mock()
+    process.poll.return_value = None
+    worker.process = process
+
+    worker.stop()
+
+    process.terminate.assert_called_once_with()
+    process.wait.assert_called_once_with(timeout=1)
 
 
 def test_correct_content_parser_chosen(dummy_alarm_builder):
@@ -209,98 +247,86 @@ def test_correct_content_parser_chosen(dummy_alarm_builder):
     for handler_id, class_ in handler_map.items():
         assert get_handler("content", handler_id) is class_
 
-@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_beep_played_when_tts_fails(mock_play_beep, dummy_alarm_builder):
-    """Is the beep played when TTS playback fails?"""
-    dummy_alarm_builder.tts_client = Mock()
-    dummy_alarm_builder.tts_client.play.side_effect = RuntimeError("player failed")
-    dummy_alarm_builder.audio = Mock()
-
-    dummy_alarm_builder.play()
-    mock_play_beep.assert_called()
-
-
-@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_beep_played_when_tts_setup_fails(mock_play_beep, dummy_alarm_builder):
+def test_beep_queued_when_tts_setup_fails(dummy_alarm_builder):
     dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
     dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
+    beep_audio = pydub.AudioSegment.silent(duration=100)
 
     with patch.object(dummy_alarm_builder, "get_tts_client", side_effect=RuntimeError):
-        dummy_alarm_builder.build()
-    dummy_alarm_builder.play()
+        with patch.object(
+            dummy_alarm_builder, "_load_beep_audio", return_value=beep_audio
+        ):
+            dummy_alarm_builder.build()
 
-    mock_play_beep.assert_called_once()
+    assert dummy_alarm_builder.audio_segments == [("beep", beep_audio)]
 
 
-@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_beep_played_when_no_tts_engine_is_enabled(
-    mock_play_beep, dummy_alarm_builder
+@pytest.mark.parametrize(
+    "tts_config", [None, {"enabled": False, "handler": "piper"}, {"enabled": True}]
+)
+def test_missing_or_disabled_tts_queues_skippable_beep(
+    tts_config, dummy_alarm_builder
 ):
-    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
-    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
-    dummy_alarm_builder.config["main"]["TTS"] = None
-
-    dummy_alarm_builder.build()
-    dummy_alarm_builder.play()
-
-    mock_play_beep.assert_called_once()
-
-
-@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_disabled_tts_uses_beep_without_initializing_engine(
-    mock_play_beep, dummy_alarm_builder
-):
-    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
-    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
-    dummy_alarm_builder.config["main"]["TTS"] = {
-        "enabled": False,
-        "handler": "piper",
-    }
-
-    with patch.object(dummy_alarm_builder, "get_tts_client") as get_tts_client:
-        dummy_alarm_builder.build()
-        dummy_alarm_builder.play()
-
-    get_tts_client.assert_not_called()
-    mock_play_beep.assert_called_once()
-
-
-@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_missing_tts_engine_uses_beep(mock_play_beep, dummy_alarm_builder):
-    dummy_alarm_builder.config["content"]["BBC_news"]["enabled"] = False
-    dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
-    dummy_alarm_builder.config["main"]["TTS"] = {"enabled": True}
-
-    dummy_alarm_builder.build()
-    dummy_alarm_builder.play()
-
-    mock_play_beep.assert_called_once()
-
-@patch("alarmpi.core.alarm_builder.AlarmBuilder.play_beep")
-def test_beep_played_when_no_engine_or_wakeup_track_enabled(
-    mock_play_beep, dummy_alarm_builder
-):
-    dummy_alarm_builder.config["main"]["TTS"] = None
+    dummy_alarm_builder.config["main"]["TTS"] = tts_config
     dummy_alarm_builder.config["media"]["enabled"] = False
+    beep_audio = pydub.AudioSegment.silent(duration=100)
+
+    with patch.object(dummy_alarm_builder, "_load_beep_audio", return_value=beep_audio):
+        dummy_alarm_builder.build()
+
+    assert dummy_alarm_builder.audio_segments == [("beep", beep_audio)]
+
+
+def test_skip_current_advances_to_next_content_segment(dummy_alarm_builder):
+    greeting_audio, news_audio, farewell_audio = object(), object(), object()
+    dummy_alarm_builder.audio_segments = [
+        ("greeting", greeting_audio),
+        ("bbc_news", news_audio),
+        ("farewell", farewell_audio),
+    ]
+    played = []
+
+    def play_segment(audio):
+        played.append(audio)
+        if audio is news_audio:
+            dummy_alarm_builder.skip_current()
+
+    dummy_alarm_builder.audio_player = Mock()
+    dummy_alarm_builder.audio_player.play.side_effect = play_segment
 
     dummy_alarm_builder.play()
-    mock_play_beep.assert_called()
+
+    assert played == [greeting_audio, news_audio, farewell_audio]
+    dummy_alarm_builder.audio_player.stop.assert_called_once_with()
 
 
-def test_no_beep_when_no_engine_but_wakeup_track_enabled(dummy_alarm_builder):
-    dummy_alarm_builder.config["main"]["TTS"] = None
-    dummy_alarm_builder.config["media"]["enabled"] = True
+def test_skip_stops_fallback_beep(dummy_alarm_builder):
+    beep_audio = object()
+    dummy_alarm_builder.audio_segments = [("beep", beep_audio)]
+    dummy_alarm_builder.audio_player = Mock()
+    dummy_alarm_builder.audio_player.play.side_effect = (
+        lambda audio: dummy_alarm_builder.skip_current()
+    )
 
-    with patch.object(dummy_alarm_builder.media_play_thread, "start") as start:
-        with patch.object(dummy_alarm_builder.media_play_thread, "wait"):
-            with patch.object(dummy_alarm_builder.media_play_thread, "stop"):
-                with patch(
-                    "alarmpi.core.alarm_builder.AlarmBuilder.play_beep"
-                ) as play_beep:
-                    dummy_alarm_builder.play()
+    dummy_alarm_builder.play()
 
-    start.assert_called_once()
-    play_beep.assert_not_called()
+    dummy_alarm_builder.audio_player.play.assert_called_once_with(beep_audio)
+    dummy_alarm_builder.audio_player.stop.assert_called_once_with()
+
+
+def test_stop_cancels_remaining_content_segments(dummy_alarm_builder):
+    dummy_alarm_builder.audio_segments = [
+        ("greeting", object()),
+        ("bbc_news", object()),
+    ]
+    dummy_alarm_builder.audio_player = Mock()
+    dummy_alarm_builder.audio_player.play.side_effect = (
+        lambda audio: dummy_alarm_builder.stop()
+    )
+
+    dummy_alarm_builder.play()
+
+    dummy_alarm_builder.audio_player.play.assert_called_once()
 
 def test_alarm_time_override(dummy_alarm_builder):
     """Is alarm time overridden when value specified in config?"""

@@ -59,6 +59,7 @@ class Clock:
 
         # Setup a QThread and QTimers for building and playing the alarm
         self.alarm_play_thread = AlarmWorker(self.alarm_player, task="play")
+        self.alarm_play_thread.play_started_signal.connect(self.show_skip_area)
         self.alarm_play_thread.play_finished_signal.connect(self.finish_playing_alarm)
 
         self.alarm_timer = QTimer(self.main_window)
@@ -78,6 +79,7 @@ class Clock:
         self.build_and_play_thread = AlarmWorker(
             self.alarm_player, task="build_and_play"
         )
+        self.build_and_play_thread.play_started_signal.connect(self.show_skip_area)
         self.build_and_play_thread.build_finished_signal.connect(
             self.finish_building_alarm
         )
@@ -201,6 +203,9 @@ class Clock:
         # Setup references to main control buttons in both windows
         self.settings_button = self.main_window.control_buttons["Settings"]
         self.radio_button = self.main_window.control_buttons["Radio"]
+        self.main_window.central_tapped.connect(
+            lambda: self.on_release_event_handler(None, central=True)
+        )
         self.blank_button = self.main_window.control_buttons["Blank"]
         self.close_button = self.main_window.control_buttons["Close"]
 
@@ -292,7 +297,7 @@ class Clock:
         self.settings_window.activateWindow()
         event_logger.debug("Settings window opened")
 
-    def on_release_event_handler(self, event):
+    def on_release_event_handler(self, event, central=False):
         """Event handler for touching the screen. Ensure screen is turned on.
         If and alarm is set, nightmode is enabled and it is currently nighttime,
         sets a short timer for blanking the screen.
@@ -301,6 +306,14 @@ class Clock:
         event_logger.debug("Activating display")
         old_screen_state = rpi_utils.get_and_set_screen_state("on")
         self.show_control_buttons()
+
+        if event is not None:
+            central = (
+                event.button() == Qt.MouseButton.LeftButton
+                and self.main_window.alarm_grid.geometry().contains(event.pos())
+            )
+        if central and not self.main_window.skip_outline.isHidden() and old_screen_state != "off":
+            self.alarm_player.skip_current()
 
         alarm_time = self.get_current_active_alarm()
         if alarm_time is None:
@@ -437,6 +450,7 @@ class Clock:
         and, if enabled, starts a separated cvlc process for the radio stream.
         """
         self.alarm_play_button.setEnabled(True)
+        self.main_window.hide_skip_area()
 
         if self.config["radio"]["enabled"]:
             # Toggle the radio button and pass the default stream
@@ -445,6 +459,9 @@ class Clock:
             default_station = self.config["radio"]["default"]
             url = self.radio_streams[default_station]
             self.play_radio(url=url)
+
+    def show_skip_area(self):
+        self.main_window.show_skip_area()
 
     def build_alarm(self):
         """Alarm build timer callback: start building an alarm and display
@@ -617,6 +634,7 @@ class Clock:
 
 class AlarmWorker(QThread):
     """QThread subclass for building and playing alarms in a separate thread."""
+    play_started_signal = pyqtSignal()
     play_finished_signal = pyqtSignal(int)
     build_finished_signal = pyqtSignal(int)
 
@@ -646,6 +664,7 @@ class AlarmWorker(QThread):
             finally:
                 self.build_finished_signal.emit(1)
         elif self.task == "play":
+            self.play_started_signal.emit()
             try:
                 self._play()
             except Exception:
@@ -667,6 +686,7 @@ class AlarmWorker(QThread):
                 self.build_finished_signal.emit(1)
 
             try:
+                self.play_started_signal.emit()
                 self._play()
             except Exception:
                 event_logger.exception("Alarm playback failed")

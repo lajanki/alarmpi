@@ -63,7 +63,10 @@ class AlarmpiTTS:
             return
 
         self._playback_stopped = True
-        process.terminate()
+        try:
+            process.terminate()
+        except ProcessLookupError:
+            return
         try:
             process.wait(timeout=1)
         except subprocess.TimeoutExpired:
