@@ -202,6 +202,7 @@ class AlarmWindow(QWidget):
         self.skip_outline.hide()
 
     def _set_skip_pressed(self, pressed):
+        """Refresh the skip area's styling when its pressed state changes."""
         if self.skip_outline.property("pressed") == pressed:
             return
         self.skip_outline.setProperty("pressed", pressed)
@@ -212,6 +213,7 @@ class AlarmWindow(QWidget):
         self.skip_outline.update()
 
     def eventFilter(self, a0, a1):
+        """Update press feedback and forward central display taps."""
         if isinstance(a1, QMouseEvent) and a1.button() == Qt.MouseButton.LeftButton:
             if a1.type() == QEvent.Type.MouseButtonPress:
                 in_area = a0 is not self or self.alarm_grid.geometry().contains(a1.pos())
