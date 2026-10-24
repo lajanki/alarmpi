@@ -34,7 +34,7 @@ def require_rpi(func):
         if IS_RASPBERRY_PI:
             return func(*args, **kwargs)
         else:
-            logger.warning(
+            logger.debug(
                 "Not running on a Raspberry Pi, ignoring utility function %s",
                 func.__name__
             )
