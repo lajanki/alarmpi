@@ -1,12 +1,13 @@
 
-## Alarm configuration
-Many features of the alarm, such as alarm content and radio streams to use, can be configured via a .yaml configuration file. By default `configs/default.yaml` will be used.
+# Alarm configuration
+The alarm content can be configured via a .yaml configuration file.
+By default `configs/default.yaml` will be used.
 
 
-### `default.yaml` reference
+## Reference
 
 
-#### `main`
+### main
 
 | Key | Purpose |
 |-----|---------|
@@ -14,11 +15,11 @@ Many features of the alarm, such as alarm content and radio streams to use, can 
 | **low_brightness** | Minimum brightness when toggling between max and low (9–255). *Raspberry Pi only.* |
 | **full_brightness_on_alarm** | When enabled, brightness goes to full when the alarm fires. Also in settings. *Raspberry Pi only.* |
 | **nighttime** | Night mode time range. While active: brightness stays low when an alarm is set; waking from blank starts a short timer to re-blank. Handy for checking the time at night without full brightness. Also in settings. *Raspberry Pi only.* |
-| **TTS** | Master speech switch and selected engine. Set `enabled: false` to use the beep instead of speech. The `handler` is optional; without a configured engine the alarm uses the beep. |
+| **TTS** | Master speech switch and selected engine. Set `enabled: false` to use the beep instead of speech. The `handler` specifies which TTS engine to use, see below. |
 
 ---
 
-#### `alsa`
+### alsa
 
 ALSA output card selector passed to `amixer -c`. Use `aplay -l` to list cards.
 A card ID is preferred over a card number as ordering is not guaranteed accross boots.
@@ -29,7 +30,7 @@ current volume unchanged and initializes the slider from the device's level.
 
 ---
 
-#### `content`
+### content
 
 Alarm speech content. Registered handlers are selected by the content section
 name (`greeting`, `weather`, or `bbc_news`, case-insensitive). Handler sections
@@ -38,10 +39,10 @@ provide literal text directly.
 
 - **`text`** — literal content to speak without a handler; use this for simple
    lines such as the closing phrase.
-- **`template`** — for the `greeting` section, the sentence to format with
-   `{period}`, `{name}`, `{weekday}`, `{month}`, `{day_of_month}`, and `{time}`.
-   The name comes from the greeting config; date and period use the current
-   date/time, and time uses `main.alarm_time`.
+- **`template`** — Template string for `greeting`. Supported template items as
+   `{time_of_day}`, `{weekday}`, `{month}`, `{day_of_month}`, and `{alarm_time}`.
+   date values are taken from current timestamp, `{alarm_time}` uses values from
+   `main.alarm_time`.
 - **Other keys** — engine- or source-specific (e.g. OpenWeatherMap: [API keys](https://openweathermap.org/appid), [city IDs](http://bulk.openweathermap.org/sample/)).
 
 **Order:** Blocks are processed in YAML order; keep **greeting** first and put
@@ -49,7 +50,7 @@ provide literal text directly.
 
 ---
 
-#### `main.TTS` (engine)
+### main.TTS (engine)
 
 Select a TTS engine using its handler. Engine-specific options go in the same
 mapping.
@@ -57,9 +58,9 @@ mapping.
 | Engine | Summary |
 |--------|---------|
 | **GCP** | [Google Cloud Text-to-Speech](https://cloud.google.com/text-to-speech). Requires a GCP project. Set `GOOGLE_APPLICATION_CREDENTIALS` for Application Default Credentials, or configure service-account impersonation with `auth`. See [pricing](https://cloud.google.com/text-to-speech/pricing). |
-| **Piper** | Local neural TTS. Install with the project dependencies and download a voice model; no network access is needed to synthesize after setup. |
+| **Piper** | [piper1-gpl](https://github.com/OHF-voice/piper1-gpl). Local neural TTS. Install with the project dependencies and download a voice model; no network access is needed to synthesize after setup. |
 
-Piper example (also used in the default config):
+Piper example:
 
 ```yaml
 main:
@@ -77,6 +78,7 @@ uv run python -m piper.download_voices en_US-lessac-medium --data-dir voices
 
 Set `main.TTS.model_path` to the `.onnx` file for a different voice. Review the
 voice's model card for its license and usage restrictions.
+ * https://rhasspy.github.io/piper-samples/
 
 GCP example:
 
@@ -97,13 +99,13 @@ main:
 
 ---
 
-#### `radio`
+### radio
 
 Station URLs for the radio feature. Playback uses `cvlc`. The stream runs outside the main Python process; the UI **radio** / **close** buttons or the `stop.sh` script can stop it (useful in headless mode).
 
 ---
 
-#### `media`
+### media
 
 Optional wakeup track before TTS.
 
@@ -111,7 +113,7 @@ Optional wakeup track before TTS.
 
 ---
 
-#### `plugins`
+### plugins
 
 Extra data sources (disabled by default):
 
@@ -124,19 +126,12 @@ Extra data sources (disabled by default):
 Each plugin's `refresh_interval` is in seconds and must be positive. Plugins
 fetch data on background workers to avoid intefering with the main GUI thread.
 Failed refreshes retain the last successful display with an additional `ERR` message.
-Detailed errors are kept in the plugin error log, not displayed in the widgets.
 
 Plugin widgets are stacked independently in the left or right sidebar.
 
 
-## Using a custom configuration
-You can either modify the provided configuration file `default.yaml` or create a new file and pass it as a command line argument:
-```bash
-uv run alarmpi my_config.yaml
-```
 
-
-### Extending the alarm with custom content
+## Extending the alarm with custom content
 Extending the alarm with you're own content is simple:
 
  1. Create a handler for your new content and place it in the `src/alarmpi/handlers/` folder. It should subclass `apcontent.AlarmpiContent` and implement the `build` method. This function is where the magic happens: it should store whatever string content to pass to the alarm as the `content` attribute. A minimal handler implementation is something like:

@@ -1,41 +1,42 @@
 # Alarmpi
 
-[![Build Status](https://img.shields.io/github/workflow/status/lajanki/alarmpi/Run%20pytest)](https://github.com/lajanki/alarmpi/actions/workflows/python-publish.yml)
+[![Build Status](https://img.shields.io/github/workflow/status/lajanki/alarmpi/Run%20pytest)](https://github.com/lajanki/alarmpi/actions/workflows/ci.yml)
 
 A Raspberry Pi clock radio with customizable Text To Speech alarm.
-```
-Good afternoon, it's Wednesday September twelfth. The time is 07:29 PM.
 
-Weather for today is Mostly Cloudy becoming rainy. It is currently 16 degrees  with a fresh breeze. The high for today is 17 and the low at 11 degrees. The sun rises at 06:43 AM and sets at 07:50 PM.
-
-And now, The latest stories from the World section of the BBC News.
-
-EU parliament votes to punish Hungary over 'breaches' of core values.
-The European Parliament votes to punish Hungary for allegedly flouting EU values and the rule of law.
-
-Hurricane Florence: Mass evacuation from 'storm of a lifetime'.
-South Carolina authorities turn four motorways into one-way routes away from the coast.
-
-Morocco bans forced marriage and sexual violence.
-The new law criminalises sexual harassment and imposes tougher penalties on perpetrators.
-
-Sri Lanka to ban Hindu animal sacrifice.
-The ritual killing of animals such as goats could soon be outlawed at Sri Lanka's Hindu temples.
+This project is a fork of https://github.com/skiwithpete/alarmpi. It is inteded to work
+as a bedside table clock radio and heavly inspired by skiwithpete's
+demonstration video on [YouTube](https://youtu.be/julETnOLkaU).
 
 
-Thats all for now. Have a nice day.
-```
-
-
-This is a fork of https://github.com/skiwithpete/alarmpi. After seeing it on [YouTube](https://youtu.be/julETnOLkaU), I thought it was neat and knew I wanted to use it to replace my old night table clock radio.
+>Good afternoon, it's Wednesday September twelfth. The time is 07:29 PM.
+>
+>Weather for today is Mostly Cloudy becoming rainy. It is currently 16 degrees  with a fresh breeze. The high for today is 17 and the low at 11 degrees. The sun rises at 06:43 AM and sets at 07:50 PM.
+>
+>And now, The latest stories from the World section of the BBC News.
+>
+>EU parliament votes to punish Hungary over 'breaches' of core values.
+>The European Parliament votes to punish Hungary for allegedly flouting EU values and the rule of law.
+>
+>Hurricane Florence: Mass evacuation from 'storm of a lifetime'.
+>South Carolina authorities turn four motorways into one-way routes away from the coast.
+>
+>Morocco bans forced marriage and sexual violence.
+>The new law criminalises sexual harassment and imposes tougher penalties on perpetrators.
+>
+>Sri Lanka to ban Hindu animal sacrifice.
+>The ritual killing of animals such as goats could soon be outlawed at Sri Lanka's Hindu temples.
+>
+>
+>Thats all for now. Have a nice day.
 
 
 ## Main Features
  * Alarm scheduling
  * A spoken greeting based on time of day
- * Reads the day's weather from openweathermap.org
- * Reads latest news from BBC World RSS feed
- * Plays internet radio streams
+ * Weather forecast from [openweathermap.org](https://openweathermap.org/)
+ * Latest world news from BBC World RSS feed
+ * Play internet radio streams
  
 
 ![Main window](docs/clock_main.png)
@@ -54,8 +55,6 @@ While this is built for a Rapsberry Pi, other Linux systems can be used for the 
 
 The DHT22 sensor is used for indoor temperature measurement and can be disabled from the configuration, see [configs/README.md](./configs/README.md).
 
-It's also possible to run the alarm without the GUI on a headless setup, see _Usage_ below.
-
 
 ## Setup
 First, install required system packages with  
@@ -64,11 +63,10 @@ sudo apt install qtbase5-dev ffmpeg vlc gpiod
 ```
 These include the core Qt5 development package and some additional utilities for audio processing.
 
-Additionally, [uv](https://docs.astral.sh/uv/getting-started/installation/) is used for project management
+Additionally, [uv](https://docs.astral.sh/uv/getting-started/installation/) is used for project management.
 
 ### Installing Python dependecies
-The UI framework used is `PyQt5` which is tricky to install on a Raspberry Pi as it has to be compiled from source
-and includes a GPL license to accept.
+The UI framework used is `PyQt5` which is tricky to install on a Raspberry Pi as it has to be compiled from source and includes a GPL license to accept.
 
 To install the dependencies, run
 ```bash
@@ -103,16 +101,12 @@ uv run --no-sync alarmpi ~/alarm_config.yaml
 ```
 If no argument is used the default configuration in, [./configs/default.yaml](./configs/default.yaml) will be used.
 
-
-This opens a digital clock interface as well a settings window for configuring the alarm. On a Raspberry Pi the GUI can also be used to toggle screen brightness between high and low as well as turning it off entirely.
-
 The optional configuration file can be used to customize the alarm as well as additional plugin based functionality, see [configs/README.md](./configs/README.md) for instructions.
 
 You can also run a purely CLI version of the alarm with
 ```bash
 uv run tools/play_alarm.py [configuration_file]
 ```
-You can use cron to manually schedule an alarm.
 
 ### Note about locales
 While the TTS alarm is played in English, weekday and month names will be generated according to the runtime environment's current locale. If necessary, the relevant locale setting can be set to English with something like:

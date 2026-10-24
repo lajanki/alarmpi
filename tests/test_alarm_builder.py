@@ -342,7 +342,7 @@ def test_alarm_time_without_override(dummy_alarm_builder):
 def test_greeting_uses_configured_template(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["alarm_time"] = "07:00"
     dummy_alarm_builder.config["content"]["greeting"]["template"] = (
-        "{period}|{weekday}|{month}|{day_of_month}|{time}"
+        "{time_of_day}|{weekday}|{month}|{day_of_month}|{alarm_time}"
     )
 
     with freeze_time("2025-01-02 10:00:00"):

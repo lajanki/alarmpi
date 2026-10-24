@@ -16,7 +16,7 @@ alsa:
 
 content:
   greeting:
-    template: "Good {period}. It's {weekday} {month} {day_of_month}. The time is {time}.\n\n"
+    template: "Good {time_of_day}. It's {weekday} {month} {day_of_month}. The time is {alarm_time}.\n\n"
 
   weather:
     enabled: false
