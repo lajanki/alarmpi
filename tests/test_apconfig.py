@@ -33,7 +33,7 @@ def test_validate_on_invalid_startup_volume(dummy_config, startup_volume):
     with pytest.raises(AssertionError, match="startup_volume must be between 0 and 100"):
         dummy_config.validate()
 
-def test_validate_on_tts_missing_handler(dummy_config):
+def test_validate_on_tts_missing_engine(dummy_config):
     """Does validation allow TTS with no selected engine?"""
     dummy_config.config["main"]["TTS"] = {"enabled": True}
 
@@ -46,9 +46,15 @@ def test_validate_on_invalid_tts_enabled_value(dummy_config, enabled):
     with pytest.raises(AssertionError, match="main.TTS.enabled must be a boolean"):
         dummy_config.validate()
 
-def test_validate_on_unknown_tts_handler(dummy_config):
-    dummy_config.config["main"]["TTS"]["handler"] = "not_registered"
-    with pytest.raises(AssertionError, match="Unknown TTS handler"):
+def test_validate_on_unknown_tts_engine(dummy_config):
+    dummy_config.config["main"]["TTS"]["engine"] = "not_registered"
+    with pytest.raises(AssertionError, match="Unknown TTS engine"):
+        dummy_config.validate()
+
+def test_validate_rejects_legacy_tts_handler_key(dummy_config):
+    dummy_config["main"]["TTS"]["handler"] = "piper"
+
+    with pytest.raises(AssertionError, match="renamed to main.TTS.engine"):
         dummy_config.validate()
 
 def test_validate_on_unknown_content_section(dummy_config):

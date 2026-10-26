@@ -176,8 +176,8 @@ class AlarmBuilder:
             event_logger.info("TTS is disabled or no TTS engine is selected")
             return None
 
-        event_logger.info("Using TTS handler %s", section["handler"])
-        class_ = get_handler("tts", section["handler"])
+        event_logger.info("Using TTS engine %s", section["engine"])
+        class_ = get_handler("tts", section["engine"])
         return class_(auth=section.get("auth"), config=section)
 
     def _tts_enabled(self):
@@ -185,7 +185,7 @@ class AlarmBuilder:
         return bool(
             section
             and section.get("enabled", True)
-            and section.get("handler")
+            and section.get("engine")
         )
 
     def play_radio(self):

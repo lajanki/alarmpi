@@ -15,7 +15,7 @@ By default `configs/default.yaml` will be used.
 | **low_brightness** | Minimum brightness when toggling between max and low (9–255). *Raspberry Pi only.* |
 | **full_brightness_on_alarm** | When enabled, brightness goes to full when the alarm fires. Also in settings. *Raspberry Pi only.* |
 | **nighttime** | Night mode time range. While active: brightness stays low when an alarm is set; waking from blank starts a short timer to re-blank. Handy for checking the time at night without full brightness. Also in settings. *Raspberry Pi only.* |
-| **TTS** | Master speech switch and selected engine. Set `enabled: false` to use the beep instead of speech. The `handler` specifies which TTS engine to use, see below. |
+| **TTS** | Master speech switch and selected engine. Set `enabled: false` to use the beep instead of speech. The `engine` specifies which TTS engine to use, see below. |
 
 ---
 
@@ -52,7 +52,7 @@ provide literal text directly.
 
 ### main.TTS (engine)
 
-Select a TTS engine using its handler. Engine-specific options go in the same
+Select a TTS engine with `engine`. Engine-specific options go in the same
 mapping.
 
 | Engine | Summary |
@@ -65,7 +65,7 @@ Piper example:
 ```yaml
 main:
    TTS:
-      handler: piper
+      engine: piper
       model_path: voices/en_US-lessac-medium.onnx
 ```
 
@@ -85,7 +85,7 @@ GCP example:
 ```yaml
 main:
    TTS:
-      handler: gcp
+      engine: gcp
       # Optional service-account impersonation; otherwise use ADC through
       # GOOGLE_APPLICATION_CREDENTIALS.
       auth:

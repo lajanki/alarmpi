@@ -73,7 +73,7 @@ def test_farewell_text_is_appended_to_tts_content(dummy_alarm_builder):
         "text": "That's all for now.",
     }
     dummy_alarm_builder.generate_greeting = Mock(return_value="Good morning")
-    dummy_alarm_builder.config["main"]["TTS"] = {"handler": "piper"}
+    dummy_alarm_builder.config["main"]["TTS"] = {"engine": "piper"}
     tts_client = Mock()
     tts_client.setup.return_value = pydub.AudioSegment.silent(duration=100)
 
@@ -120,7 +120,7 @@ def test_config_to_tts_content_pipeline():
 
 def test_piper_tts_client_chosen(dummy_alarm_builder):
     dummy_alarm_builder.config["main"]["TTS"] = {
-        "handler": "piper",
+        "engine": "piper",
         "model_path": "voices/en_US-lessac-medium.onnx",
     }
 
@@ -262,7 +262,7 @@ def test_beep_queued_when_tts_setup_fails(dummy_alarm_builder):
 
 
 @pytest.mark.parametrize(
-    "tts_config", [None, {"enabled": False, "handler": "piper"}, {"enabled": True}]
+    "tts_config", [None, {"enabled": False, "engine": "piper"}, {"enabled": True}]
 )
 def test_missing_or_disabled_tts_queues_skippable_beep(
     tts_config, dummy_alarm_builder
