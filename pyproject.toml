@@ -1,6 +1,6 @@
 [project]
 name = "alarmpi"
-version = "3.6.0"
+version = "4.0.0"
 description = "Alarm Clock Radio for Raspberry Pi"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -10,6 +10,7 @@ dependencies = [
     "google-cloud-texttospeech",
     "mutagen",
     "num2words",
+    "piper-tts",
     "pydub",
     "PyQt5",
     "pyqtspinner",

@@ -6,7 +6,7 @@ def enabled_plugins(config):
         from alarmpi.plugins.weather import WeatherPlugin
 
         yield "right", WeatherPlugin(
-            config["content"]["openweathermap.org"],
+            config["content"]["weather"],
             config["plugins"]["openweathermap.org"]["refresh_interval"],
         )
 

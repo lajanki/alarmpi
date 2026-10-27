@@ -1,10 +1,13 @@
 import pytest
 import os.path
 import subprocess
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, mock_open
 from datetime import datetime
 
 from freezegun import freeze_time
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtTest import QTest
 
 from alarmpi.core import clock, apconfig, alarm_builder
 
@@ -21,6 +24,81 @@ def create_clock():
     dummy_clock = clock.Clock(PATH_TO_CONFIG)
     dummy_clock.setup()
     return dummy_clock
+
+@pytest.mark.parametrize(
+    "startup_volume,initial_volume,expected_volume",
+    [(None, 46, 46), (0, 46, 0), (70, 46, 70)],
+)
+def test_startup_volume_is_optional_and_slider_matches(
+    startup_volume, initial_volume, expected_volume
+):
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
+    if startup_volume is not None:
+        dummy_clock.config["alsa"]["startup_volume"] = startup_volume
+    mixer_volume = [initial_volume]
+
+    def read_mixer_volume(card):
+        return mixer_volume[0]
+
+    def write_mixer_volume(card, level):
+        mixer_volume[0] = level
+
+    with patch(
+        "alarmpi.core.clock.utils.get_volume", side_effect=read_mixer_volume
+    ):
+        with patch(
+            "alarmpi.core.clock.utils.set_volume", side_effect=write_mixer_volume
+        ) as set_volume:
+            dummy_clock.setup()
+            assert dummy_clock.settings_window.volume_slider.value() == expected_volume
+            if startup_volume is None:
+                set_volume.assert_not_called()
+            else:
+                set_volume.assert_called_once_with(
+                    dummy_clock.config["alsa"]["card"], startup_volume
+                )
+                dummy_clock.restore_volume()
+                assert mixer_volume[0] == initial_volume
+
+def test_volume_is_restored_after_startup_override_and_slider_change():
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
+    dummy_clock.config["alsa"]["startup_volume"] = 70
+    mixer_volume = [46]
+
+    def read_mixer_volume(card):
+        return mixer_volume[0]
+
+    def write_mixer_volume(card, level):
+        mixer_volume[0] = level
+
+    with patch(
+        "alarmpi.core.clock.utils.get_volume", side_effect=read_mixer_volume
+    ):
+        with patch(
+            "alarmpi.core.clock.utils.set_volume", side_effect=write_mixer_volume
+        ):
+            dummy_clock.setup()
+            assert mixer_volume[0] == 70
+
+            dummy_clock.set_volume(85)
+            dummy_clock.restore_volume()
+
+    assert mixer_volume[0] == 46
+    assert not dummy_clock._volume_changed
+
+def test_tts_checkbox_initializes_and_updates_config():
+    dummy_clock = clock.Clock(PATH_TO_CONFIG)
+    dummy_clock.config["main"]["TTS"]["enabled"] = False
+
+    with patch("alarmpi.core.clock.utils.get_volume", return_value=46):
+        with patch("alarmpi.core.clock.utils.set_volume"):
+            dummy_clock.setup()
+
+    assert not dummy_clock.settings_window.tts_checkbox.isChecked()
+
+    dummy_clock.settings_window.tts_checkbox.setChecked(True)
+
+    assert dummy_clock.config["main"]["TTS"]["enabled"] is True
 
 @pytest.fixture(scope="class")
 def dummy_clock():
@@ -148,20 +226,35 @@ class TestClock():
         assert not dummy_clock.settings_window.control_buttons["Toggle\nBrightness"].isEnabled()
         assert not dummy_clock.main_window.control_buttons["Blank"].isEnabled()
 
-    @pytest.mark.parametrize("time,is_active", [
-        ("2021-07-30 09:00", False),
-        ("2021-07-30 23:20", True),
-        ("2021-07-30 00:32", False) # TODO: when initialized before start_dt, nighttime will be disabled
+    @pytest.mark.parametrize("time,start_dt,end_dt,is_active", [
+        (
+            "2021-07-30 09:00",
+            datetime(2021, 7, 30, 22, 0),
+            datetime(2021, 7, 31, 7, 0),
+            False,
+        ),
+        (
+            "2021-07-30 23:20",
+            datetime(2021, 7, 30, 22, 0),
+            datetime(2021, 7, 31, 7, 0),
+            True,
+        ),
+        (
+            "2021-07-30 00:32",
+            datetime(2021, 7, 29, 22, 0),
+            datetime(2021, 7, 30, 7, 0),
+            True,
+        ),
     ])
-    def test_nighttime_hours(self, time, is_active):
+    def test_nighttime_hours(self, time, start_dt, end_dt, is_active):
         """Test nighttime range when Clock is created with different times with respect to
         nighttime start time.
         """
         # Create a new clock instance with the time specified and check nighttime range values
         with freeze_time(time):
             dummy_clock = create_clock()
-            assert dummy_clock.config["main"]["nighttime"]["start_dt"] == datetime(2021, 7, 30, 22, 0)
-            assert dummy_clock.config["main"]["nighttime"]["end_dt"] == datetime(2021, 7, 31, 7, 0)
+            assert dummy_clock.config["main"]["nighttime"]["start_dt"] == start_dt
+            assert dummy_clock.config["main"]["nighttime"]["end_dt"] == end_dt
             assert dummy_clock._nightmode_active() == is_active
 
     def test_nightime_update(self):
@@ -198,6 +291,84 @@ class TestClock():
         dummy_clock.media_window.button.click()
         assert dummy_clock.media_window.isHidden()
 
+    def test_radio_process_exit_resets_radio_ui(self):
+        dummy_clock = create_clock()
+        process = Mock()
+        process.poll.return_value = 1
+        dummy_clock.radio.process = process
+        radio_button = dummy_clock.main_window.control_buttons["Radio"]
+        radio_button.setChecked(True)
+        dummy_clock.main_window._show_radio_play_indicator("Radio Suomi")
+        dummy_clock.radio_process_timer.start()
+
+        dummy_clock._check_radio_process()
+
+        assert dummy_clock.radio.process is None
+        assert not radio_button.isChecked()
+        assert dummy_clock.main_window.radio_play_indicator.text() == ""
+        assert not dummy_clock.radio_process_timer.isActive()
+
+    @pytest.mark.parametrize(
+        "screen_state,playing,expected_skips",
+        [("on", True, 4), ("off", True, 0), ("on", False, 0)],
+    )
+    def test_central_taps_skip_only_during_playback_on_awake_screen(
+        self, screen_state, playing, expected_skips
+    ):
+        dummy_clock = clock.Clock(PATH_TO_CONFIG)
+        dummy_clock.config["radio"]["enabled"] = False
+        with patch.object(dummy_clock.alarm_player, "skip_current") as skip_current:
+            with patch("alarmpi.core.clock.utils.get_volume", return_value=46):
+                with patch("alarmpi.core.clock.utils.set_volume"):
+                    dummy_clock.setup()
+
+            window = dummy_clock.main_window
+            QApplication.instance().processEvents()
+            clock_geometry = window.clock_lcd.geometry()
+            date_geometry = window.date_label.geometry()
+            assert window.skip_outline.isHidden()
+            if playing:
+                dummy_clock.show_skip_area()
+                assert window.skip_outline.geometry() == window.alarm_grid.geometry()
+
+            with patch(
+                "alarmpi.core.clock.rpi_utils.get_and_set_screen_state",
+                return_value=screen_state,
+            ) as wake_screen:
+                for display in (window.date_label, window.clock_lcd, window.alarm_time_lcd):
+                    QTest.mouseClick(display, Qt.LeftButton)
+                QTest.mouseClick(
+                    window, Qt.LeftButton,
+                    pos=window.alarm_grid.geometry().bottomLeft() + QPoint(2, -2),
+                )
+                QTest.mouseClick(window, Qt.LeftButton, pos=QPoint(2, 2))
+
+            assert skip_current.call_count == expected_skips
+            assert wake_screen.call_count == 5
+            assert window.clock_lcd.geometry() == clock_geometry
+            assert window.date_label.geometry() == date_geometry
+
+        dummy_clock.finish_playing_alarm()
+        QApplication.instance().processEvents()
+        assert window.skip_outline.isHidden()
+        window.close()
+
+    def test_desktop_central_tap_stops_current_audio(self):
+        dummy_clock = clock.Clock(PATH_TO_CONFIG)
+        with patch("alarmpi.core.clock.utils.get_volume", return_value=46):
+            dummy_clock.setup()
+        dummy_clock.alarm_player.audio_player = Mock()
+        QApplication.instance().processEvents()
+        dummy_clock.show_skip_area()
+
+        try:
+            with patch.object(clock.rpi_utils, "IS_RASPBERRY_PI", False):
+                QTest.mouseClick(dummy_clock.main_window.clock_lcd, Qt.LeftButton)
+
+            dummy_clock.alarm_player.audio_player.stop.assert_called_once_with()
+        finally:
+            dummy_clock.main_window.close()
+
 
 #### AlarmWorker
 
@@ -220,6 +391,27 @@ class TestAlarmWorker():
         # Check the overriden time is present in the output generated by the alarm build
         captured = capsys.readouterr()
         assert "09:03" in captured.out
+
+    def test_build_and_play_signals_emit_when_steps_fail(self):
+        config = apconfig.AlarmConfig(PATH_TO_CONFIG)
+        builder = alarm_builder.AlarmBuilder(config)
+        worker = clock.AlarmWorker(builder, task="build_and_play")
+        worker._build = Mock(side_effect=RuntimeError("synthesis failed"))
+        worker._play = Mock(side_effect=RuntimeError("beep failed"))
+        build_finished = Mock()
+        play_finished = Mock()
+        play_started = Mock()
+        worker.play_started_signal.connect(play_started)
+        worker.build_finished_signal.connect(build_finished)
+        worker.play_finished_signal.connect(play_finished)
+        original_alarm_time = config["main"]["alarm_time"]
+
+        worker.run()
+
+        assert config["main"]["alarm_time"] == original_alarm_time
+        play_started.assert_called_once_with()
+        build_finished.assert_called_once_with(1)
+        play_finished.assert_called_once_with(1)
 
 
 #### RadioStreamer
@@ -244,8 +436,38 @@ class TestRadioStreamer():
 
     def test_stop_clears_active_process(self, dummy_radio):
         """Does stop clear the list of running processes?"""
-        subprocess.Popen = Mock()
-        dummy_radio.play("https://foo.bar")
+        process = Mock(stdout=iter(()))
+        with patch("builtins.open", mock_open()):
+            with patch(
+                "alarmpi.core.clock.subprocess.Popen", return_value=process
+            ):
+                dummy_radio.play("https://foo.bar")
+                dummy_radio.output_thread.join(timeout=1)
+                dummy_radio.stop()
+
+        assert dummy_radio.process is None
+
+    def test_stream_input_error_terminates_vlc(self, dummy_radio):
+        process = Mock(
+            stdout=iter(
+                [
+                    "[access] access stream error: HTTP 404 error\n",
+                    "[main] Your input can't be opened\n",
+                ]
+            )
+        )
+
+        with patch("builtins.open", mock_open()):
+            dummy_radio._monitor_output(process)
+
+        process.terminate.assert_called_once_with()
+
+    def test_stop_handles_process_that_already_exited(self, dummy_radio):
+        process = Mock()
+        process.terminate.side_effect = ProcessLookupError
+        dummy_radio.process = process
+
         dummy_radio.stop()
 
+        process.terminate.assert_called_once_with()
         assert dummy_radio.process is None

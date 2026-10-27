@@ -23,6 +23,24 @@ AlarmWindow QLabel#date_label {
   margin-top: 10px;
 }
 
+AlarmWindow QFrame#skip_area {
+  background-color: rgba(255, 20, 20, 8);
+  border: 1px solid rgba(255, 20, 20, 65);
+  border-radius: 6px;
+}
+
+AlarmWindow QFrame#skip_area[pressed="true"] {
+  background-color: rgba(255, 20, 20, 26);
+  border-color: rgba(255, 20, 20, 170);
+}
+
+AlarmWindow QLabel#skip_icon {
+  background: transparent;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
 SettingsWindow QLabel#input_alarm_time_label {
   font: 14pt;
 }

@@ -1,18 +1,16 @@
 import glob
-import importlib
-import inspect
 import logging
 import os
 import random
-import requests.exceptions
 import subprocess
+from threading import Event
 
 import pydub
-import pydub.playback
 from PyQt5.QtCore import QThread, pyqtSignal
 
+from alarmpi.core import aptts
 from alarmpi.utils import utils
-from alarmpi.handlers import get_festival_tts, get_greeting
+from alarmpi.handlers import get_handler, get_greeting
 
 
 event_logger = logging.getLogger("eventLogger")
@@ -24,6 +22,9 @@ class AlarmBuilder:
         self.media_play_thread = MediaPlayWorker()
         self.config = config
         self.audio = None
+        self.audio_segments = []
+        self.audio_player = aptts.AlarmpiTTS()
+        self._playback_cancelled = Event()
 
     def build(self):
         """Build an alarm.
@@ -31,26 +32,32 @@ class AlarmBuilder:
         Loop through the configuration file for enabled content sections
         and generate matching content.
         """
+        self.audio = None
+        self.audio_segments = []
+        self.tts_client = None
+        self._playback_cancelled.clear()
+
         # Initialize content with greeting
-        contents = []
-        contents.append(self.generate_greeting())
+        contents = [("greeting", self.generate_greeting())]
 
         # For each content section get the handler module and create the approriate
         # content parser
         content_sections = self.config.get_enabled_sections("content")
         for section in content_sections:
-            class_ = self.get_content_parser_class(content_sections[section])
-            parser = class_(content_sections[section])
+            section_data = content_sections[section]
+            if "text" in section_data:
+                contents.append((section, section_data["text"]))
+                continue
+
+            class_ = get_handler("content", section.lower())
+            parser = class_(section_data)
 
             # build content
             parser.build()
-            contents.append(parser.get())
+            contents.append((section, parser.get()))
 
-        # Add ending phrase from the config file
-        contents.append(self.config["main"].get("end", ""))
-
-        for section in contents:
-            print(section)
+        for _, text in contents:
+            print(text)
 
         if self.config["media"]["enabled"]:
             files = glob.glob(self.config["media"]["path"])
@@ -59,11 +66,30 @@ class AlarmBuilder:
 
             event_logger.info("Set wakeup song to %s", wakeup_song_path)
 
-        # Initialize TTS client with the generated content
-        if self.config["main"]["TTS"]:
-            self.tts_client = self.get_tts_client()
-            content_text = "\n".join(contents)
-            self.audio = self.tts_client.setup(content_text)
+        # Initialize the selected TTS engine with the generated content
+        if self._tts_enabled():
+            try:
+                self.tts_client = self.get_tts_client()
+                if self.tts_client is not None:
+                    self.audio_segments = [
+                        (section, self.tts_client.setup(text))
+                        for section, text in contents
+                    ]
+            except Exception:
+                event_logger.exception("TTS setup failed; alarm will use the beep")
+                self.tts_client = None
+                self.audio_segments = []
+
+        if not self.audio_segments and (
+            self._tts_enabled() or not self.config["media"]["enabled"]
+        ):
+            self.audio_segments = [("beep", self._load_beep_audio())]
+
+        if self.audio_segments:
+            self.audio = self.audio_segments[0][1]
+            silence = pydub.AudioSegment.silent(duration=300)
+            for _, audio in self.audio_segments[1:]:
+                self.audio += silence + audio
 
     def play(self):
         """Play an alarm.
@@ -73,28 +99,38 @@ class AlarmBuilder:
         """
         # Play wakeup song if enabled
         wakeup_song_enabled = self.config["media"]["enabled"]
-        tts_enabled = self.config["main"]["TTS"]
+        tts_enabled = self._tts_enabled()
 
-        # Default to a beepig alarm if nether TTS or wakeup song is enabled
-        if not any([tts_enabled, wakeup_song_enabled]):
-            AlarmBuilder.play_beep()
-            return
-
-        if wakeup_song_enabled: 
+        if wakeup_song_enabled:
             self.media_play_thread.start()
             self.media_play_thread.wait()
             self.media_play_thread.stop()
 
-        if self.audio:
+        if self._playback_cancelled.is_set():
+            return
+
+        if not self.audio_segments and not wakeup_song_enabled:
+            self.audio_segments = [("beep", self._load_beep_audio())]
+
+        for section, audio in self.audio_segments:
+            if self._playback_cancelled.is_set():
+                break
             try:
-                self.tts_client.play(self.audio)
-            except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError) as e:
-                event_logger.error(str(e))
-                event_logger.info("Defaulting to alarm sound effect")
-                AlarmBuilder.play_beep()
+                self.audio_player.play(audio)
+            except Exception:
+                if self._playback_cancelled.is_set():
+                    break
+                event_logger.exception("Playback failed for %s; using the beep", section)
+                if section != "beep":
+                    try:
+                        self.audio_player.play(self._load_beep_audio())
+                    except Exception:
+                        event_logger.exception("Beep playback failed")
+                break
 
         # Reset audio for next alarm
         self.audio = None
+        self.audio_segments = []
 
     def build_and_play(self):
         """Build and play an alarm.
@@ -110,6 +146,19 @@ class AlarmBuilder:
         if self.config["radio"]["enabled"]:
             self.play_radio()
 
+    def stop(self):
+        """Cancel alarm playback and stop the current audio segment."""
+        self._playback_cancelled.set()
+        self.audio_player.stop()
+        self.media_play_thread.stop()
+
+    def skip_current(self):
+        """Stop the current song or audio segment and continue the alarm."""
+        if self.media_play_thread.isRunning():
+            self.media_play_thread.stop()
+        else:
+            self.audio_player.stop()
+
     def generate_greeting(self):
         """Generate a greeting using get_greeting.py handler.
         Return:
@@ -120,43 +169,24 @@ class AlarmBuilder:
         return greeter.get()
 
     def get_tts_client(self):
-        """Determine which TTS engine to use based on the enabled tts sections
-        in the config file. First enabled section is used.
+        """Create the TTS engine selected in the main configuration section.
         """
-        # Search for the first enabled TTS engine and instantiate a corresponding class
-        section_wrapper = self.config.get_enabled_sections("TTS")
+        section = self.config["main"].get("TTS")
+        if not self._tts_enabled():
+            event_logger.info("TTS is disabled or no TTS engine is selected")
+            return None
 
-        if section_wrapper:
-            section = list(section_wrapper.values())[0]
-            event_logger.info("Using TTS handler %s", section["handler"])
+        event_logger.info("Using TTS engine %s", section["engine"])
+        class_ = get_handler("tts", section["engine"])
+        return class_(auth=section.get("auth"), config=section)
 
-            class_ = self.get_content_parser_class(section)
-            # read the path to the keyfile if provided/applicable
-            auth = section.get("auth")
-            client = class_(auth=auth)
-
-        # Default to Festival TTS
-        else:
-            event_logger.info("No TTS engine specified in config, using Festival")
-            client = get_festival_tts.FestivalTTSManager()
-
-        return client
-
-    def get_content_parser_class(self, section):
-        """Given config file section name, return the class matching the handler.
-        
-        Args:
-            section (dict): config file section
-        """
-        # Use importlib to dynamically import the correct module within
-        # the 'handlers' package.
-        path_to_module = f"alarmpi.handlers.{section['handler'][:-3]}"
-        handler_module = importlib.import_module(path_to_module)
-
-        # Inspect the handler module for classes and return the first class.
-        class_ = inspect.getmembers(handler_module, inspect.isclass)[0][1]
-
-        return class_
+    def _tts_enabled(self):
+        section = self.config["main"].get("TTS")
+        return bool(
+            section
+            and section.get("enabled", True)
+            and section.get("engine")
+        )
 
     def play_radio(self):
         """Open a stream to the default radio station using cvlc."""
@@ -170,13 +200,9 @@ class AlarmBuilder:
         subprocess.Popen(cmd)
 
     @staticmethod
-    def play_beep():
-        """Play a beeping sound effect."""
+    def _load_beep_audio():
         path = str(utils.PATH_TO_RESOURCES / "Cool-alarm-tone-notification-sound.mp3")
-        beep = pydub.AudioSegment.from_mp3(path)
-        pydub.playback.play(beep)
-
-        return path
+        return pydub.AudioSegment.from_mp3(path)
 
 
 class MediaPlayWorker(QThread):
@@ -195,17 +221,33 @@ class MediaPlayWorker(QThread):
         metadata = utils.get_mp3_metadata(self.song_path)
         song_name = (metadata["artist"] + " - " + metadata["title"]).lstrip("- ")
 
+        process = subprocess.Popen(
+            ["/usr/bin/cvlc", self.song_path, "vlc://quit"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.process = process
         self.play_started_signal.emit(song_name)
-        self.process = subprocess.run(["/usr/bin/cvlc", self.song_path, "vlc://quit"])
+        try:
+            process.wait()
+        finally:
+            if self.process is process:
+                self.process = None
+            self.play_finished_signal.emit(1)
 
     def stop(self):
-        """Terminate the thread."""
+        """Stop the wake-up track's VLC process."""
         event_logger.debug("Stopping media thread")
-        self.play_finished_signal.emit(1)
-        # The vlc process needs to be explicitely terminated
-        try:
-            subprocess.run(["killall", "-9", "vlc"], stderr=subprocess.DEVNULL)
-            self.process.terminate()
+        process = self.process
+        if process is None or process.poll() is not None:
+            return
 
-        except AttributeError:
+        try:
+            process.terminate()
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+        except ProcessLookupError:
             return

@@ -4,6 +4,11 @@ from unittest import mock
 from alarmpi.utils import rpi_utils
 
 
+def test_unavailable_backlight_state_is_treated_as_awake():
+    with mock.patch.object(rpi_utils, "IS_RASPBERRY_PI", False):
+        assert rpi_utils.get_and_set_screen_state("on") == "on"
+
+
 @pytest.fixture()
 def enable_pi():
     rpi_utils.IS_RASPBERRY_PI = True

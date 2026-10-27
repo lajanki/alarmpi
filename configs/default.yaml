@@ -6,46 +6,31 @@ main:
     enabled: true
     start: '22:00'    # time in HH:MM format
     end: '07:00'
-  TTS: true
-  end: Thats all for now. Have a nice day.
+  TTS:
+    enabled: true
+    engine: piper
+    model_path: voices/en_US-lessac-medium.onnx
 
 alsa:
-  device_idx: 1     # index of the ALSA audio device to use for output. See aplay -l for detected devices
-  volume: 70        # initial volume level, 0 - 100
+  card: 1     # ALSA card number or quoted ID (prefer ID for stability); see aplay -l
+  startup_volume: null  # Optional ALSA volume override on startup, 0 - 100
 
 content:
   greeting:
-    handler: get_greeting.py
-    name: ""
+    template: "Good {time_of_day}, Émile. It's {weekday} {month} {day_of_month}. The time is {alarm_time}.\n\n"
 
-  openweathermap.org:
+  weather:
     enabled: false
-    handler: get_weather.py
     credentials: /path/to/credentials       # file containing openweather API key, see https://openweathermap.org/appid
     city_id: null                           # http://bulk.openweathermap.org/sample/
     units: metric                           # metric|imperial
 
-  BBC_news:
+  bbc_news:
     enabled: true
-    handler: get_bbc_news.py
 
-TTS:
-  # Google Cloud Text to Speech API.
-  # Note: This requires additional GCP project setup.
-  GCP:
-    enabled: false
-    handler: get_gcp_tts.py
-    # Optional service account to impersonate.
-    # Note: the recommended way to authenticate is to set
-    # GOOGLE_APPLICATION_CREDENTIALS instead to enable Application Default Credentials.
-    # Service account impersonation avoids static secrets but requires base
-    # runtime credentials to initiate the impersonation.
-    # auth:
-    #   service_account: <my-service-account>@<projectid>.iam.gserviceaccount.com
-
-  google_translate:
+  farewell:
     enabled: true
-    handler: get_google_translate_tts.py
+    text: Thats all for now. Have a nice day.
 
 radio:
   enabled: true

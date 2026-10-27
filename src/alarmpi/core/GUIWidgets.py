@@ -7,12 +7,13 @@ from collections import namedtuple
 from enum import Enum
 from functools import partial
 
-from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import Qt, QTimer, QSize, pyqtSignal
+from PyQt5.QtGui import QIcon, QColor, QMouseEvent, QPainter
+from PyQt5.QtCore import Qt, QTimer, QSize, QEvent, pyqtSignal
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDesktopWidget,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -20,6 +21,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSlider,
+    QStyle,
     QVBoxLayout,
     QWidget
 )
@@ -47,6 +49,7 @@ class AlarmWindow(QWidget):
     """QWidget subclass for main window."""
 
     closing = pyqtSignal()
+    central_tapped = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -58,6 +61,7 @@ class AlarmWindow(QWidget):
         # Setup base and subgrids for layouting
         base_layout = QGridLayout(self)
         alarm_grid = QVBoxLayout()
+        self.alarm_grid = alarm_grid
         left_grid_container = QVBoxLayout()
         right_grid_container = QVBoxLayout()
         bottom_grid = QHBoxLayout()
@@ -105,6 +109,37 @@ class AlarmWindow(QWidget):
         self.alarm_time_lcd.setSegmentStyle(QLCDNumber.Flat)
         alarm_grid.addWidget(self.alarm_time_lcd, alignment=Qt.AlignTop)
         alarm_grid.setStretch(2, 3)
+
+        for display in (self.date_label, self.clock_lcd, self.alarm_time_lcd):
+            display.installEventFilter(self)
+        
+        self.skip_outline = QFrame(self)
+        self.skip_outline.setObjectName("skip_area")
+        self.skip_outline.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.skip_outline.setProperty("pressed", False)
+        self.skip_icon = QLabel(self.skip_outline)
+        self.skip_icon.setObjectName("skip_icon")
+        self.skip_icon.setAccessibleName("Skip current item")
+        self.skip_icon.setToolTip("Skip current item")
+        self.skip_icon.setFixedSize(20, 20)
+        style = self.style()
+        assert style is not None
+        icon = style.standardIcon(QStyle.StandardPixmap.SP_MediaSkipForward)
+        pixmap = icon.pixmap(20, 20)
+        painter = QPainter(pixmap)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+        painter.fillRect(pixmap.rect(), QColor(255, 20, 20, 180))
+        painter.end()
+        self.skip_icon.setPixmap(pixmap)
+        skip_layout = QVBoxLayout(self.skip_outline)
+        skip_layout.setContentsMargins(12, 12, 12, 12)
+        skip_layout.addStretch()
+        skip_layout.addWidget(
+            self.skip_icon,
+            alignment=Qt.AlignmentFlag.AlignRight,
+        )
+        self.skip_outline.hide()
+        self.installEventFilter(self)
 
         # ** Bottom grid: main UI control buttons **
         # Note: handlers are defined and set in clock.py
@@ -156,6 +191,46 @@ class AlarmWindow(QWidget):
         self.setWindowTitle("Alarmpi")
         self.setup_clock_polling()
         self.show()
+
+    def show_skip_area(self):
+        self.skip_outline.setGeometry(self.alarm_grid.geometry())
+        self.skip_outline.show()
+        self.skip_outline.raise_()
+
+    def hide_skip_area(self):
+        self._set_skip_pressed(False)
+        self.skip_outline.hide()
+
+    def _set_skip_pressed(self, pressed):
+        """Refresh the skip area's styling when its pressed state changes."""
+        if self.skip_outline.property("pressed") == pressed:
+            return
+        self.skip_outline.setProperty("pressed", pressed)
+        style = self.skip_outline.style()
+        if style is not None:
+            style.unpolish(self.skip_outline)
+            style.polish(self.skip_outline)
+        self.skip_outline.update()
+
+    def eventFilter(self, a0, a1):
+        """Update press feedback and forward central display taps."""
+        if isinstance(a1, QMouseEvent) and a1.button() == Qt.MouseButton.LeftButton:
+            if a1.type() == QEvent.Type.MouseButtonPress:
+                in_area = a0 is not self or self.alarm_grid.geometry().contains(a1.pos())
+                self._set_skip_pressed(in_area and not self.skip_outline.isHidden())
+            elif a1.type() == QEvent.Type.MouseButtonRelease:
+                self._set_skip_pressed(False)
+                if a0 is not self:
+                    self.central_tapped.emit()
+                    return True
+        return super().eventFilter(a0, a1)
+
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+        self.skip_outline.setGeometry(self.alarm_grid.geometry())
 
     def add_plugin(self, widget, side):
         self.plugin_layouts[side].addWidget(widget)
@@ -285,9 +360,9 @@ class SettingsWindow(QWidget):
             bottom_grid.addWidget(button)
 
         # ** Left grid: misc settings **
-        self.readaloud_checkbox = QCheckBox("Enable Text-to-Speech alarm", self)
         self.wakeup_song_checkbox = QCheckBox("Enable wakeup song", self)
         self.nightmode_checkbox = QCheckBox("Enable Nightmode", self)
+        self.tts_checkbox = QCheckBox("Enable TTS", self)
 
         # ComboBox for radio station, filled from config file
         self.radio_station_combo_box = QComboBox(self)
@@ -297,9 +372,9 @@ class SettingsWindow(QWidget):
 
         self.alarm_time_status_label = QLabel(self, objectName="alarm_time_status_label")
 
-        left_grid.addWidget(self.readaloud_checkbox, 0, 0)
-        left_grid.addWidget(self.wakeup_song_checkbox, 1, 0)
-        left_grid.addWidget(self.nightmode_checkbox, 2, 0)
+        left_grid.addWidget(self.wakeup_song_checkbox, 0, 0)
+        left_grid.addWidget(self.nightmode_checkbox, 1, 0)
+        left_grid.addWidget(self.tts_checkbox, 2, 0)
 
         volume_grid = QGridLayout()
         self.volume_slider = QSlider(Qt.Horizontal, self)

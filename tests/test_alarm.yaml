@@ -6,42 +6,30 @@ main:
     enabled: true
     start: '22:00'
     end: '07:00'
-  TTS: true
-  end: Thats all for now. Have a nice day.
+  TTS:
+    enabled: true
+    engine: piper
+    model_path: voices/en_US-lessac-medium.onnx
 
 alsa:
-  device_idx: 1
+  card: 1
 
 content:
   greeting:
-    handler: get_greeting.py
-    name: ""
+    template: "Good {time_of_day}. It's {weekday} {month} {day_of_month}. The time is {alarm_time}.\n\n"
 
-  openweathermap.org:
+  weather:
     enabled: false
-    handler: get_weather.py
     credentials: /path/to/file.dat
     city_id: null
     units: metric
 
   BBC_news:
     enabled: true
-    handler: get_bbc_news.py
 
-TTS:
-  GCP:
-    enabled: false
-    handler: get_gcp_tts.py
-    credentials: /path/to/key.json
-
-  google_translate:
+  farewell:
     enabled: true
-    handler: get_google_translate_tts.py
-
-  festival:
-    enabled: false
-    handler: get_festival_tts.py
-
+    text: Thats all for now. Have a nice day.
 
 radio:
   enabled: true

@@ -11,6 +11,7 @@ import sys
 from PyQt5.QtWidgets import QApplication
 
 from alarmpi.core import clock
+from alarmpi.core.apconfig import ConfigValidationError
 
 
 logging.config.fileConfig("logging.conf")
@@ -73,7 +74,12 @@ def run():
         for handler in event_logger.handlers:
             handler.setLevel(logging.DEBUG)
 
-    ex = clock.Clock(config, **kwargs)
+    try:
+        ex = clock.Clock(config, **kwargs)
+    except ConfigValidationError as e:
+        event_logger.error("%s", e)
+        sys.exit(2)
+    
     ex.setup()
     res = app.exec_()
 

@@ -4,6 +4,7 @@
 import logging
 import signal
 import subprocess
+from threading import Thread
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -36,10 +37,13 @@ class Clock:
         app = QApplication.instance()
         if app is None:
             raise RuntimeError("Clock requires an existing QApplication")
+        self._original_volume = None
+        self._volume_changed = False
         self.main_window = GUIWidgets.AlarmWindow()
         self.plugins = []
         self.main_window.closing.connect(self.stop_plugins)
         app.aboutToQuit.connect(self.stop_plugins)
+        app.aboutToQuit.connect(self.restore_volume)
         self.settings_window = GUIWidgets.SettingsWindow(self.config)
         self.media_window = GUIWidgets.MediaPlayerWindow()
 
@@ -49,9 +53,13 @@ class Clock:
         self.alarm_player.media_play_thread.play_finished_signal.connect(self.media_window.hide)
 
         self.radio = RadioStreamer(self.config["radio"])
+        self.radio_process_timer = QTimer(self.main_window)
+        self.radio_process_timer.setInterval(500)
+        self.radio_process_timer.timeout.connect(self._check_radio_process)
 
         # Setup a QThread and QTimers for building and playing the alarm
         self.alarm_play_thread = AlarmWorker(self.alarm_player, task="play")
+        self.alarm_play_thread.play_started_signal.connect(self.show_skip_area)
         self.alarm_play_thread.play_finished_signal.connect(self.finish_playing_alarm)
 
         self.alarm_timer = QTimer(self.main_window)
@@ -71,6 +79,7 @@ class Clock:
         self.build_and_play_thread = AlarmWorker(
             self.alarm_player, task="build_and_play"
         )
+        self.build_and_play_thread.play_started_signal.connect(self.show_skip_area)
         self.build_and_play_thread.build_finished_signal.connect(
             self.finish_building_alarm
         )
@@ -103,6 +112,21 @@ class Clock:
         """Setup various button handlers as well as weather and train data polling
         for the main windows side bar.
         """
+        try:
+            self._original_volume = utils.get_volume(self.config["alsa"]["card"])
+        except AttributeError:
+            self._original_volume = None
+
+        startup_volume = self.config["alsa"].get("startup_volume")
+        if startup_volume is not None:
+            if self._original_volume is None:
+                event_logger.warning(
+                    "Skipping startup volume override because the current ALSA volume could not be read"
+                )
+            else:
+                utils.set_volume(self.config["alsa"]["card"], startup_volume)
+                self._volume_changed = True
+
         self.setup_button_handlers()
 
         for side, plugin in enabled_plugins(self.config):
@@ -111,14 +135,15 @@ class Clock:
             plugin.start()
 
         # Setup settings window's checkbox initial values:
-        tts_enabled = self.config["main"]["TTS"]
-        self.settings_window.readaloud_checkbox.setChecked(tts_enabled)
-
         nightmode_status = self.config["main"]["nighttime"].get("enabled", False)
         self.settings_window.nightmode_checkbox.setChecked(nightmode_status)
 
         wakeup_song_status = self.config["media"].get("enabled", False)
         self.settings_window.wakeup_song_checkbox.setChecked(wakeup_song_status)
+
+        tts_config = self.config["main"].get("TTS")
+        tts_enabled = bool(tts_config and tts_config.get("enabled", True))
+        self.settings_window.tts_checkbox.setChecked(tts_enabled)
 
         # Store nighttime range as datetimes to config.
         start_dt = utils.time_str_to_dt(self.config["main"]["nighttime"]["start"])
@@ -127,6 +152,10 @@ class Clock:
         # Ensure start is before end
         if end_dt <= start_dt:
             end_dt = end_dt + timedelta(1)
+            # Before today's end means this overnight period started yesterday.
+            if datetime.now() <= end_dt - timedelta(1):
+                start_dt -= timedelta(1)
+                end_dt -= timedelta(1)
 
         self.config["main"]["nighttime"].update(
             {"start_dt": start_dt, "end_dt": end_dt}
@@ -165,14 +194,6 @@ class Clock:
         default_station = self.config["radio"]["default"]
         self.settings_window.radio_station_combo_box.setCurrentText(default_station)
 
-        # Set audio volume level
-        if self.config["alsa"].get("volume"):
-            # No input validation; the amixer utility will ignore invalid volume levels
-            utils.set_volume(
-                self.config["alsa"]["device_idx"],
-                self.config["alsa"]["volume"]
-            )
-
     def stop_plugins(self):
         for plugin in self.plugins:
             plugin.stop()
@@ -182,6 +203,9 @@ class Clock:
         # Setup references to main control buttons in both windows
         self.settings_button = self.main_window.control_buttons["Settings"]
         self.radio_button = self.main_window.control_buttons["Radio"]
+        self.main_window.central_tapped.connect(
+            lambda: self.on_release_event_handler(None, central=True)
+        )
         self.blank_button = self.main_window.control_buttons["Blank"]
         self.close_button = self.main_window.control_buttons["Close"]
 
@@ -230,11 +254,6 @@ class Clock:
         alarm_clear_button.clicked.connect(self.clear_alarm)
 
         # Settings window checkbox callbacks
-        self.settings_window.readaloud_checkbox.stateChanged.connect(
-            lambda state: self.config.config["main"].update(
-                {"TTS": state == Qt.CheckState.Checked}
-            )
-        )
         self.settings_window.nightmode_checkbox.stateChanged.connect(
             lambda state: self.config.config["main"]["nighttime"].update(
                 {"enabled": state == Qt.CheckState.Checked}
@@ -245,20 +264,25 @@ class Clock:
                 {"enabled": state == Qt.CheckState.Checked}
             )
         )
+        self.settings_window.tts_checkbox.stateChanged.connect(
+            lambda state: self.set_tts_enabled(state == Qt.CheckState.Checked)
+        )
 
-        self.settings_window.volume_slider.valueChanged.connect(self.set_volume)
         # Set initial handle position and icon. Disable the slider if
         # couldn't get a meaningful volume level (ie. invalid audio device configuration)
         try:
-            volume_level = utils.get_volume(self.config["alsa"]["device_idx"])
-            self.set_volume(volume_level)
+            volume_level = utils.get_volume(self.config["alsa"]["card"])
+            if self._original_volume is None:
+                self._original_volume = volume_level
             self.settings_window.volume_slider.setValue(volume_level)
+            self._update_volume_icon(volume_level)
         except AttributeError as e:
             self.settings_window.volume_slider.setEnabled(False)
-            self.set_volume(0)
+            self._update_volume_icon(0)
             event_logger.warning(
                 "Couldn't get volume level. Wrong device index value in configuration? Disabling volume slider."
             )
+        self.settings_window.volume_slider.valueChanged.connect(self.set_volume)
 
     def open_settings_window(self):
         """Button callback - settings window. Open the settings window and
@@ -273,7 +297,7 @@ class Clock:
         self.settings_window.activateWindow()
         event_logger.debug("Settings window opened")
 
-    def on_release_event_handler(self, event):
+    def on_release_event_handler(self, event, central=False):
         """Event handler for touching the screen. Ensure screen is turned on.
         If and alarm is set, nightmode is enabled and it is currently nighttime,
         sets a short timer for blanking the screen.
@@ -282,6 +306,14 @@ class Clock:
         event_logger.debug("Activating display")
         old_screen_state = rpi_utils.get_and_set_screen_state("on")
         self.show_control_buttons()
+
+        if event is not None:
+            central = (
+                event.button() == Qt.MouseButton.LeftButton
+                and self.main_window.alarm_grid.geometry().contains(event.pos())
+            )
+        if central and not self.main_window.skip_outline.isHidden() and old_screen_state != "off":
+            self.alarm_player.skip_current()
 
         alarm_time = self.get_current_active_alarm()
         if alarm_time is None:
@@ -379,9 +411,25 @@ class Clock:
         if button.isChecked():
             self.main_window._show_radio_play_indicator(current_radio_station)
             self.radio.play(url)
+            self.radio_process_timer.start()
         else:
+            self.radio_process_timer.stop()
             self.main_window._hide_radio_play_indicator()
             self.radio.stop()
+
+    def _check_radio_process(self):
+        """Reset radio UI state when the VLC process exits."""
+        exit_code = self.radio.poll()
+        if exit_code is None:
+            return
+
+        self.radio_process_timer.stop()
+        self.main_window.control_buttons["Radio"].setChecked(False)
+        self.main_window._hide_radio_play_indicator()
+        if exit_code:
+            event_logger.warning("Radio stream process exited with status %s", exit_code)
+        else:
+            event_logger.info("Radio stream process exited")
 
     def play_alarm(self):
         """Alarm timer callback: Play a previously built alarm.
@@ -402,6 +450,7 @@ class Clock:
         and, if enabled, starts a separated cvlc process for the radio stream.
         """
         self.alarm_play_button.setEnabled(True)
+        self.main_window.hide_skip_area()
 
         if self.config["radio"]["enabled"]:
             # Toggle the radio button and pass the default stream
@@ -410,6 +459,9 @@ class Clock:
             default_station = self.config["radio"]["default"]
             url = self.radio_streams[default_station]
             self.play_radio(url=url)
+
+    def show_skip_area(self):
+        self.main_window.show_skip_area()
 
     def build_alarm(self):
         """Alarm build timer callback: start building an alarm and display
@@ -486,9 +538,20 @@ class Clock:
         update volume level icon.
         """
         utils.set_volume(
-            self.config["alsa"]["device_idx"], value
+            self.config["alsa"]["card"], value
         )
+        self._volume_changed = True
 
+        self._update_volume_icon(value)
+
+    def set_tts_enabled(self, enabled):
+        tts_config = self.config["main"].get("TTS")
+        if not isinstance(tts_config, dict):
+            tts_config = {}
+            self.config["main"]["TTS"] = tts_config
+        tts_config["enabled"] = enabled
+
+    def _update_volume_icon(self, value):
         if value == 0:
             mode = "muted"
         elif value <= 25:
@@ -507,12 +570,26 @@ class Clock:
         """
         self.stop_plugins()
         self.radio.stop()
+        self.alarm_player.stop()
         self.alarm_player.media_play_thread.stop()
 
         # Ensure display is on and at full brightness
         rpi_utils.toggle_screen_state("on")
         rpi_utils.set_display_backlight_brightness(rpi_utils.HIGH_BRIGHTNESS)
         QApplication.instance().quit()
+
+    def restore_volume(self):
+        """Restore the ALSA level captured before Alarmpi changed it."""
+        if self._original_volume is None or not self._volume_changed:
+            return
+
+        try:
+            utils.set_volume(
+                self.config["alsa"]["card"], self._original_volume
+            )
+            self._volume_changed = False
+        except Exception:
+            event_logger.exception("Couldn't restore ALSA volume on exit")
 
     def _nightmode_active(self):
         """Helper function for checking if nightmode is enabled and it is currently nighttime."""
@@ -557,6 +634,7 @@ class Clock:
 
 class AlarmWorker(QThread):
     """QThread subclass for building and playing alarms in a separate thread."""
+    play_started_signal = pyqtSignal()
     play_finished_signal = pyqtSignal(int)
     build_finished_signal = pyqtSignal(int)
 
@@ -579,23 +657,41 @@ class AlarmWorker(QThread):
 
     def run(self):
         if self.task == "build":
-            self._build()
-            self.build_finished_signal.emit(1)
+            try:
+                self._build()
+            except Exception:
+                event_logger.exception("Alarm build failed")
+            finally:
+                self.build_finished_signal.emit(1)
         elif self.task == "play":
-            self._play()
-            self.play_finished_signal.emit(1)
+            self.play_started_signal.emit()
+            try:
+                self._play()
+            except Exception:
+                event_logger.exception("Alarm playback failed")
+            finally:
+                self.play_finished_signal.emit(1)
         elif self.task == "build_and_play":
             # Temporarily overwrite alarm_time in config to pass correct value to the greeting
             old = self.alarm_builder.config["main"]["alarm_time"]
             self.alarm_builder.config["main"]["alarm_time"] = datetime.now().strftime(
                 "%H:%M"
             )
-            self._build()
-            self.alarm_builder.config["main"]["alarm_time"] = old
+            try:
+                self._build()
+            except Exception:
+                event_logger.exception("Alarm build failed")
+            finally:
+                self.alarm_builder.config["main"]["alarm_time"] = old
+                self.build_finished_signal.emit(1)
 
-            self.build_finished_signal.emit(1)
-            self._play()
-            self.play_finished_signal.emit(1)
+            try:
+                self.play_started_signal.emit()
+                self._play()
+            except Exception:
+                event_logger.exception("Alarm playback failed")
+            finally:
+                self.play_finished_signal.emit(1)
 
 
 class RadioStreamer:
@@ -603,11 +699,22 @@ class RadioStreamer:
 
     def __init__(self, config):
         self.process = None
+        self.output_thread = None
         self.config = config
 
     def is_playing(self):
         """Check if a radio stream is currently running."""
         return self.process is not None
+
+    def poll(self):
+        """Return the exit status and clear the process once it has exited."""
+        if self.process is None:
+            return None
+
+        exit_code = self.process.poll()
+        if exit_code is not None:
+            self.process = None
+        return exit_code
 
     def play(self, url):
         """Open a radio stream as a child process. The stream will continue to run
@@ -617,18 +724,51 @@ class RadioStreamer:
         cmd = f"/usr/bin/cvlc {url} {args}"
         event_logger.info("Running %s", cmd)
 
-        # Run the command via Popen directly to open the stream as an independent child
-        # process. This way we do not wait for the stream to finish.
-        # Output is captured (truncated) to file.
-        with open("logs/radio.log", "w") as f:
-            self.process = subprocess.Popen(
-                cmd.split(), stdout=f, stderr=subprocess.STDOUT
-            )
+        self.process = subprocess.Popen(
+            cmd.split(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        self.output_thread = Thread(
+            target=self._monitor_output, args=(self.process,), daemon=True
+        )
+        self.output_thread.start()
+
+    def _monitor_output(self, process):
+        """Log VLC output and terminate the process when stream input fails."""
+        if process.stdout is None:
+            return
+
+        input_failed = False
+        with open("logs/radio.log", "w") as log_file:
+            for line in process.stdout:
+                log_file.write(line)
+                log_file.flush()
+                lowered_line = line.lower()
+                if not input_failed and any(
+                    message in lowered_line
+                    for message in (
+                        "access stream error:",
+                        "your input can't be opened",
+                        "unable to open the mrl",
+                    )
+                ):
+                    input_failed = True
+                    event_logger.error("Radio stream failed: %s", line.strip())
+                    try:
+                        process.terminate()
+                    except ProcessLookupError:
+                        pass
 
     def stop(self):
         """Terminate the running cvlc process."""
-        try:
-            self.process.terminate()
-            self.process = None
-        except AttributeError:
+        process = self.process
+        self.process = None
+        if process is None:
             return
+
+        try:
+            process.terminate()
+        except ProcessLookupError:
+            pass
