@@ -55,7 +55,12 @@ def test_content_handler_is_inferred_from_section_name(dummy_alarm_builder):
     with patch(
         "alarmpi.core.alarm_builder.get_handler", return_value=ContentParser
     ) as handler_lookup:
-        dummy_alarm_builder.build()
+        with patch.object(
+            dummy_alarm_builder,
+            "_load_beep_audio",
+            return_value=pydub.AudioSegment.silent(duration=100),
+        ):
+            dummy_alarm_builder.build()
 
     handler_lookup.assert_called_once_with("content", "bbc_news")
 
